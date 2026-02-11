@@ -1,0 +1,14 @@
+{{define "body"}}
+<h1>Event</h1>
+<label>ID: {{.Event.ID}}</label><br>
+<label>Title: {{.Event.Title}}</label><br>
+<label>Description: {{.Event.Description}}</label><br>
+<label>Date and time the event started: {{.Event.StartTime | dateFormat "2 Jan 2006 15:04"}}</label><br>
+<label>Date and time the event ended: {{.Event.StopTime | dateFormat "2 Jan 2006 15:04"}}</label><br>
+<hr/>
+<form action="/delete-event" method="GET">
+	<input type="hidden" name="id" value={{.Event.ID}} />
+  <input type="hidden" name="jwt-token" value={{.AccessToken}} />
+	<button>delete</button>
+</form>
+{{end}}

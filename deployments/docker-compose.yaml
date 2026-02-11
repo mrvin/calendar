@@ -1,0 +1,121 @@
+name: calendar
+services:
+    frontend:
+        build:
+         context: ../
+         dockerfile: cmd/calendar-front/Dockerfile
+        ports:
+         - "8080:8080"
+        depends_on:
+         - backend
+         - otel_collector
+        volumes:
+         - ./../configs/calendar-front.yml:/etc/calendar/calendar-front.yml
+
+    backend:
+        build:
+         context: ../
+         dockerfile: cmd/calendar/Dockerfile
+        ports:
+         - "8088:8088" # REST API
+         - "55555:55555" # gRPC API
+        environment:
+         ENV: PROD
+        depends_on:
+         - migrate
+        volumes:
+         - ./../configs/calendar.yml:/etc/calendar/calendar.yml
+
+    scheduler:
+       build:
+        context: ../
+        dockerfile: cmd/scheduler/Dockerfile
+       depends_on:
+         postgres:
+           condition: service_healthy
+         rabbitmq:
+           condition: service_healthy
+       volumes:
+        - ./../configs/scheduler.yml:/etc/calendar/scheduler.yml
+
+    sender:
+       build:
+        context: ../
+        dockerfile: cmd/sender/Dockerfile
+       depends_on:
+         rabbitmq:
+           condition: service_healthy
+       volumes:
+        - ./../configs/sender.yml:/etc/calendar/sender.yml
+
+    migrate:
+        image: migrate/migrate:v4.18.1
+        command: ["-path", "/migrations", "-database",  "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable", "up"]
+        depends_on:
+          postgres:
+            condition: service_healthy
+        volumes:
+         - ./../migrations:/migrations
+
+    # Create service with PostgreSQL.
+    postgres:
+        image: postgres:17.0-alpine3.20
+        ports:
+         - "5432"
+        user: root
+        env_file:
+         - postgres.env
+        healthcheck:
+          test: ["CMD", "pg_isready", "-q", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
+          interval: 3s
+        volumes:
+         - ${HOME}/volumes_docker/calendar/postgres-data:/var/lib/postgresql/data
+
+    # Create service with RabbitMQ.
+    rabbitmq:
+        image: rabbitmq:4.0.3-management-alpine
+        ports:
+         - "15672:15672" # for serve RabbitMQ GUI
+         - "5672:5672"
+        healthcheck:
+          test: rabbitmq-diagnostics -q ping
+
+    # OpenTelemetry Collector
+    otel_collector:
+        image: otel/opentelemetry-collector-contrib:0.113.0
+        command: --config=/etc/otel-collector.yml
+        ports:
+         - "4317:4317" # OTLP over gRPC receiver
+         - "9464:9464" # Prometheus exporter
+        # healthcheck:
+        depends_on:
+         - jaeger
+        volumes:
+         - ./../configs/otel-collector.yml:/etc/otel-collector.yml
+
+    jaeger:
+        image: jaegertracing/all-in-one:1.63.0
+        ports:
+         - "16686:16686" # for serve Jaeger GUI
+         - "14268:14268"
+        # healthcheck:
+
+    prometheus:
+        image: prom/prometheus:v2.55.1
+        command: --config.file=/etc/prometheus/prometheus.yml
+        ports:
+         - "9090:9090"
+        depends_on:
+         - otel_collector
+        volumes:
+         - ./../configs/prometheus.yml:/etc/prometheus/prometheus.yml
+
+    grafana:
+        image: grafana/grafana:10.4.12
+        ports:
+         - "3000:3000"
+        depends_on:
+         - prometheus
+        volumes:
+         - ./../configs/grafana/provisioning:/etc/grafana/provisioning
+         - ${HOME}/volumes_docker/calendar/grafana-data:/var/lib/grafana

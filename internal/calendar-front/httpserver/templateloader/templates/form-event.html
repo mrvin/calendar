@@ -1,0 +1,11 @@
+{{define "body"}}
+<form action="/create-event/{{.AccessToken}}" method="POST">
+	Title: <input name="title" type="text"><br>
+	Description: <input name="description" type="text"><br>
+	Event start time: <input name="startTime" type="datetime-local"><br>
+	Event stop time: <input name="stopTime" type="datetime-local">
+	<input type="hidden" name="timezone" value="Europe/Moscow" />
+	<hr/>
+	<button id="submit">create</button>
+</form>
+{{end}}
