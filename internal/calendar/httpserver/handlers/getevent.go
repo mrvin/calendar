@@ -1,4 +1,4 @@
-package get
+package handlers
 
 import (
 	"context"
@@ -19,7 +19,7 @@ type EventGetter interface {
 }
 
 //nolint:tagliatelle
-type Response struct {
+type ResponseGetEvent struct {
 	ID          int64     `json:"id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description,omitempty"`
@@ -29,7 +29,7 @@ type Response struct {
 	Status      string    `json:"status"`
 }
 
-func New(getter EventGetter) http.HandlerFunc {
+func NewGetEvent(getter EventGetter) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		op := "Get event: "
 		ctx := req.Context()
@@ -55,7 +55,7 @@ func New(getter EventGetter) http.HandlerFunc {
 		}
 
 		// Write json response
-		response := Response{
+		response := ResponseGetEvent{
 			ID:          event.ID,
 			Title:       event.Title,
 			Description: event.Description,

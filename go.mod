@@ -1,6 +1,6 @@
 module github.com/mrvin/calendar
 
-go 1.23.1
+go 1.26.0
 
 require (
 	github.com/go-playground/validator/v10 v10.22.1

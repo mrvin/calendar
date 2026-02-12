@@ -1,4 +1,4 @@
-package signin
+package handlers
 
 import (
 	"context"
@@ -19,24 +19,24 @@ type UserAuth interface {
 	Authenticate(ctx context.Context, username, password string) (string, error)
 }
 
-type Request struct {
+type RequestSignin struct {
 	Username string `example:"Bob"    json:"username" validate:"required,min=3,max=20"`
 	Password string `example:"qwerty" json:"password" validate:"required,min=6,max=32"`
 }
 
-type Response struct {
+type ResponseSignin struct {
 	Token  string `example:"abJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ8.eyJleHAiOjE3MDQ3MzExODUsImlhdCI6MTcwNDczMDI4NSwidXNlcm5hbWUiOiJCb2IifQ.XDV9U8Wu202vp5g0gJFma7t5oVZXZlAhN-TMPBOZqEA" json:"token"`
 	Status string `example:"OK"                                                                                                                                                      json:"status"`
 }
 
 // @Router		/signin [get].
-func New(auth UserAuth) http.HandlerFunc {
+func NewSignin(auth UserAuth) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		op := "Signin: "
 		ctx := req.Context()
 
 		// Read json request
-		var request Request
+		var request RequestSignin
 		body, err := io.ReadAll(req.Body)
 		defer req.Body.Close()
 		if err != nil {
@@ -88,7 +88,7 @@ func New(auth UserAuth) http.HandlerFunc {
 		}
 
 		// Write json response
-		response := Response{
+		response := ResponseSignin{
 			Token:  token,
 			Status: "OK",
 		}

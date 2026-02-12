@@ -1,4 +1,4 @@
-package delete
+package handlers
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type EventDeleter interface {
 	DeleteEvent(ctx context.Context, id int64) error
 }
 
-func New(deleter EventDeleter) http.HandlerFunc {
+func NewDeleteEvent(deleter EventDeleter) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		op := "Delete event: "
 		ctx := req.Context()

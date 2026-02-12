@@ -1,4 +1,4 @@
-package get
+package handlers
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type UserGetter interface {
 	GetUser(ctx context.Context, name string) (*storage.User, error)
 }
 
-type Response struct {
+type ResponseGetUser struct {
 	Name         string `example:"Bob"            json:"name"`
 	HashPassword string `example:"$3a$10$8.nlQZMRbgpjNNpZzQnZ4OPsuUo1HQ/XFe93qc2tPjBEYlMVFe43W" json:"hashPassword"`
 	Email        string `example:"email@mail.com" json:"email"`
@@ -25,7 +25,7 @@ type Response struct {
 	Status       string `example:"OK"             json:"status"`
 }
 
-func New(getter UserGetter) http.HandlerFunc {
+func NewGetUser(getter UserGetter) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		op := "Get user info: "
 		ctx := req.Context()
@@ -51,7 +51,7 @@ func New(getter UserGetter) http.HandlerFunc {
 		}
 
 		// Write json response
-		response := Response{
+		response := ResponseGetUser{
 			Name:         user.Name,
 			HashPassword: user.HashPassword,
 			Email:        user.Email,

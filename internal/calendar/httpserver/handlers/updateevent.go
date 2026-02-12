@@ -1,4 +1,4 @@
-package update
+package handlers
 
 import (
 	"context"
@@ -20,7 +20,7 @@ type EventUpdater interface {
 }
 
 //nolint:tagliatelle
-type Request struct {
+type RequestUpdateEvent struct {
 	ID          int64     `json:"id"`
 	Title       string    `json:"title"       validate:"required,min=2,max=64"`
 	Description string    `json:"description" validate:"required,min=2,max=512"`
@@ -28,10 +28,10 @@ type Request struct {
 	StopTime    time.Time `json:"stop_time"   validate:"required"`
 }
 
-func New(updater EventUpdater) http.HandlerFunc {
+func NewUpdateEvent(updater EventUpdater) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		// Read json request
-		var request Request
+		var request RequestUpdateEvent
 
 		body, err := io.ReadAll(req.Body)
 		defer req.Body.Close()

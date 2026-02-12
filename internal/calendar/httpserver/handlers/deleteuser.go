@@ -1,4 +1,4 @@
-package handleruser
+package handlers
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	handler "github.com/mrvin/calendar/internal/calendar/server/http/handlers"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
@@ -16,11 +15,11 @@ type UserDeleter interface {
 	DeleteUser(ctx context.Context, name string) error
 }
 
-func New(deleter UserDeleter) http.HandlerFunc {
+func NewDeleteUser(deleter UserDeleter) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		userName := handler.GetUserNameFromContext(req.Context())
+		userName := GetUserNameFromContext(req.Context())
 		if userName == "" {
-			err := fmt.Errorf("DeleteUser: %w", handler.ErrUserNameIsEmpty)
+			err := fmt.Errorf("DeleteUser: %w", ErrUserNameIsEmpty)
 			slog.Error(err.Error())
 			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
 			return

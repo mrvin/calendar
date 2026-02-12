@@ -1,4 +1,4 @@
-package signup
+package handlers
 
 import (
 	"context"
@@ -20,20 +20,20 @@ type UserCreator interface {
 	CreateUser(ctx context.Context, user *storage.User) error
 }
 
-type Request struct {
+type RequestSignup struct {
 	Username string `example:"Bob"            json:"username" validate:"required,min=3,max=20"`
 	Password string `example:"qwerty"         json:"password" validate:"required,min=6,max=32"`
 	Email    string `example:"email@mail.com" json:"email"    validate:"required,email"`
 }
 
 // @Router		/signup [post].
-func New(creator UserCreator) http.HandlerFunc {
+func NewSignup(creator UserCreator) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		op := "Signup: "
 		ctx := req.Context()
 
 		// Read json request
-		var request Request
+		var request RequestSignup
 		body, err := io.ReadAll(req.Body)
 		defer req.Body.Close()
 		if err != nil {

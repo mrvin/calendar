@@ -1,4 +1,4 @@
-package create
+package handlers
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	handler "github.com/mrvin/calendar/internal/calendar/server/http/handlers"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
@@ -20,30 +19,30 @@ type EventCreator interface {
 }
 
 //nolint:tagliatelle
-type Request struct {
+type RequestCreateEvent struct {
 	Title       string    `json:"title"       validate:"required,min=2,max=64"`
 	Description string    `json:"description" validate:"omitempty,min=2,max=512"`
 	StartTime   time.Time `json:"start_time"  validate:"required"`
 	StopTime    time.Time `json:"stop_time"   validate:"required"`
 }
 
-type Response struct {
+type ResponseCreateEvent struct {
 	ID     int64  `json:"id"`
 	Status string `json:"status"`
 }
 
-func New(creator EventCreator) http.HandlerFunc {
+func NewCreateEvent(creator EventCreator) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		userName := handler.GetUserNameFromContext(req.Context())
+		userName := GetUserNameFromContext(req.Context())
 		if userName == "" {
-			err := fmt.Errorf("CreateEvent: %w", handler.ErrUserNameIsEmpty)
+			err := fmt.Errorf("CreateEvent: %w", ErrUserNameIsEmpty)
 			slog.Error(err.Error())
 			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Read json request
-		var request Request
+		var request RequestCreateEvent
 
 		body, err := io.ReadAll(req.Body)
 		defer req.Body.Close()
@@ -95,7 +94,7 @@ func New(creator EventCreator) http.HandlerFunc {
 		}
 
 		// Write json response
-		response := Response{
+		response := ResponseCreateEvent{
 			ID:     id,
 			Status: "OK",
 		}

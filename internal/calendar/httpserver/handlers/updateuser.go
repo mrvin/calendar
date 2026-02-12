@@ -1,4 +1,4 @@
-package update
+package handlers
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	handler "github.com/mrvin/calendar/internal/calendar/server/http/handlers"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 	"golang.org/x/crypto/bcrypt"
@@ -25,11 +24,11 @@ type RequestUpdateUser struct {
 	Email    string `json:"email"    validate:"required,email"`
 }
 
-func New(updater UserUpdater) http.HandlerFunc {
+func NewUpdateUser(updater UserUpdater) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		userName := handler.GetUserNameFromContext(req.Context())
+		userName := GetUserNameFromContext(req.Context())
 		if userName == "" {
-			err := fmt.Errorf("UpdateUser: %w", handler.ErrUserNameIsEmpty)
+			err := fmt.Errorf("UpdateUser: %w", ErrUserNameIsEmpty)
 			slog.Error(err.Error())
 			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
 			return

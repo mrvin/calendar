@@ -4,19 +4,17 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"log"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/mrvin/calendar/internal/calendar/httpserver"
 	grpcserver "github.com/mrvin/calendar/internal/calendar/server/grpc"
-	httpserver "github.com/mrvin/calendar/internal/calendar/server/http"
 	authservice "github.com/mrvin/calendar/internal/calendar/service/auth"
 	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
 	"github.com/mrvin/calendar/internal/config"
@@ -136,51 +134,29 @@ func main() {
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT /*(Control-C)*/, syscall.SIGTERM)
-	go listenForShutdown(ctx, signals, serverHTTP, serverGRPC)
+	go listenForShutdown(signals, serverGRPC)
 
 	var wg sync.WaitGroup
-	wg.Add(numServer)
-	go func() {
-		defer wg.Done()
-
-		var err error
-		if conf.HTTP.IsHTTPS {
-			err = serverHTTP.StartTLS(&conf.HTTP.HTTPS)
-		} else {
-			err = serverHTTP.Start()
-		}
-		if !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("Failed to start http server: " + err.Error())
-			return
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
+		serverHTTP.Run(ctx)
+	})
+	wg.Go(func() {
 		if err := serverGRPC.Start(); err != nil {
 			slog.Error("Failed to start gRPC server: " + err.Error())
 			return
 		}
-	}()
-
+	})
 	wg.Wait()
 
 	slog.Info("Stop service " + serviceName)
 }
 
 func listenForShutdown(
-	ctx context.Context,
 	signals chan os.Signal,
-	serverHTTP *httpserver.Server,
 	serverGRPC *grpcserver.Server,
 ) {
 	<-signals
 	signal.Stop(signals)
-
-	if err := serverHTTP.Stop(ctx); err != nil {
-		slog.Error("Failed to stop http server: " + err.Error())
-		return
-	}
 
 	serverGRPC.Stop()
 }
