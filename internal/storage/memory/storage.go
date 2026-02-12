@@ -3,7 +3,7 @@ package memorystorage
 import (
 	"sync"
 
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
+	"github.com/mrvin/calendar/internal/storage"
 )
 
 type Storage struct {

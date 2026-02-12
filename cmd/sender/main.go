@@ -8,11 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/config"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/logger"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/queue"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/queue/rabbitmq"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/sender/email"
+	"github.com/mrvin/calendar/internal/config"
+	"github.com/mrvin/calendar/internal/logger"
+	"github.com/mrvin/calendar/internal/queue"
+	"github.com/mrvin/calendar/internal/queue/rabbitmq"
+	"github.com/mrvin/calendar/internal/sender/email"
 )
 
 type Config struct {

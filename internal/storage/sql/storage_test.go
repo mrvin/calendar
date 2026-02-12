@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
+	"github.com/mrvin/calendar/internal/storage"
 )
 
 var ctx = context.Background()

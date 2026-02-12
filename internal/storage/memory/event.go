@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
+	"github.com/mrvin/calendar/internal/storage"
 )
 
 func (s *Storage) CreateEvent(ctx context.Context, event *storage.Event) (int64, error) {

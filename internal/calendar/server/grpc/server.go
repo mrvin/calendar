@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"net"
 
-	authservice "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/service/auth"
-	eventservice "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/service/event"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/grpcapi"
+	authservice "github.com/mrvin/calendar/internal/calendar/service/auth"
+	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
+	"github.com/mrvin/calendar/internal/grpcapi"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"

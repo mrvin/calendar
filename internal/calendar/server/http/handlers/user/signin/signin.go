@@ -10,9 +10,9 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	authenticate "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/service/auth"
-	log "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/logger"
-	httpresponse "github.com/mrvin/hw-otus-go/hw12-15calendar/pkg/http/response"
+	authenticate "github.com/mrvin/calendar/internal/calendar/service/auth"
+	log "github.com/mrvin/calendar/internal/logger"
+	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
 
 type UserAuth interface {

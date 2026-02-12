@@ -1,0 +1,20 @@
+# queue settings
+queue:
+    host: rabbitmq
+    port: 5672
+    user_name: guest
+    password: guest
+    name: event-queue
+
+# email settings
+email:
+    senderEmail: myEmail@mail.com
+    password: myPass
+    host: smtp.example.com
+    port: 25
+
+# logging settings
+logger:
+    filepath:
+    level: debug # debug, info, warn, error
+

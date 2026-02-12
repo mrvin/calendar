@@ -1,17 +1,5 @@
 name: calendar
 services:
-    frontend:
-        build:
-         context: ../
-         dockerfile: cmd/calendar-front/Dockerfile
-        ports:
-         - "8080:8080"
-        depends_on:
-         - backend
-         - otel_collector
-        volumes:
-         - ./../configs/calendar-front.yml:/etc/calendar/calendar-front.yml
-
     backend:
         build:
          context: ../

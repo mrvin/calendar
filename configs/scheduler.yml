@@ -1,0 +1,24 @@
+# queue settings
+queue:
+    host: rabbitmq
+    port: 5672
+    user_name: guest
+    password: guest
+    name: event-queue
+
+# database settings
+db:
+    driver: postgres
+    host: postgres
+    port: 5432
+    user: event-db
+    password: event-db
+    name: event-db
+
+# logging settings
+logger:
+    filepath:
+    level: debug # debug, info, warn, error
+
+# database scan period in minutes
+schedule_period: 30

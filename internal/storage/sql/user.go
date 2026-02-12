@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/lib/pq"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
+	"github.com/mrvin/calendar/internal/storage"
 )
 
 func (s *Storage) CreateUser(ctx context.Context, user *storage.User) error {

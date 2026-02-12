@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	httpserver "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/server/http"
-	handlerevent "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/server/http/handlers/event"
-	handlerusersignin "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/server/http/handlers/user/signin"
-	handlerusersignup "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/server/http/handlers/user/signup"
-	handleruserupdate "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/server/http/handlers/user/update"
-	authservice "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/service/auth"
-	eventservice "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/service/event"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
-	memorystorage "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage/memory"
-	sqlstorage "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage/sql"
+	httpserver "github.com/mrvin/calendar/internal/calendar/server/http"
+	handlerevent "github.com/mrvin/calendar/internal/calendar/server/http/handlers/event"
+	handlerusersignin "github.com/mrvin/calendar/internal/calendar/server/http/handlers/user/signin"
+	handlerusersignup "github.com/mrvin/calendar/internal/calendar/server/http/handlers/user/signup"
+	handleruserupdate "github.com/mrvin/calendar/internal/calendar/server/http/handlers/user/update"
+	authservice "github.com/mrvin/calendar/internal/calendar/service/auth"
+	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
+	"github.com/mrvin/calendar/internal/storage"
+	memorystorage "github.com/mrvin/calendar/internal/storage/memory"
+	sqlstorage "github.com/mrvin/calendar/internal/storage/sql"
 )
 
 //nolint:tagliatelle

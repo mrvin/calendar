@@ -10,9 +10,9 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	handler "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/calendar/server/http/handlers"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
-	httpresponse "github.com/mrvin/hw-otus-go/hw12-15calendar/pkg/http/response"
+	handler "github.com/mrvin/calendar/internal/calendar/server/http/handlers"
+	"github.com/mrvin/calendar/internal/storage"
+	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 	"golang.org/x/crypto/bcrypt"
 )
 

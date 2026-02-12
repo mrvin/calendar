@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/queue"
+	"github.com/mrvin/calendar/internal/queue"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

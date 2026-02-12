@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	log "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/logger"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
+	log "github.com/mrvin/calendar/internal/logger"
+	"github.com/mrvin/calendar/internal/storage"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"

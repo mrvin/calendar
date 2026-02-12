@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
-	httpresponse "github.com/mrvin/hw-otus-go/hw12-15calendar/pkg/http/response"
+	"github.com/mrvin/calendar/internal/storage"
+	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
 
 type EventUpdater interface {

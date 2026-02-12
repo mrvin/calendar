@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/config"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/logger"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/queue"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/queue/rabbitmq"
-	sqlstorage "github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage/sql"
+	"github.com/mrvin/calendar/internal/config"
+	"github.com/mrvin/calendar/internal/logger"
+	"github.com/mrvin/calendar/internal/queue"
+	"github.com/mrvin/calendar/internal/queue/rabbitmq"
+	sqlstorage "github.com/mrvin/calendar/internal/storage/sql"
 )
 
 //nolint:tagliatelle

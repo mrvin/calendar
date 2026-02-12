@@ -1,4 +1,4 @@
-module github.com/mrvin/hw-otus-go/hw12-15calendar
+module github.com/mrvin/calendar
 
 go 1.23.1
 

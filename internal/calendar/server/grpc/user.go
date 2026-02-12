@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/grpcapi"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/internal/storage"
+	"github.com/mrvin/calendar/internal/grpcapi"
+	"github.com/mrvin/calendar/internal/storage"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/protobuf/types/known/emptypb"
 )

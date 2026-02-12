@@ -8,7 +8,7 @@ import (
 
 	// Add pure Go Postgres driver for the database/sql package.
 	_ "github.com/lib/pq"
-	"github.com/mrvin/hw-otus-go/hw12-15calendar/pkg/retry"
+	"github.com/mrvin/calendar/pkg/retry"
 )
 
 const retriesConnect = 5

@@ -1,0 +1,47 @@
+# GRPC server settings
+grpc:
+    host: backend
+    port: 55555
+
+# HTTP server setting
+http:
+    host: backend
+    port: 8088
+    is_https: true # Enable HTTPS
+    https:
+        cert_file: cert/serverCert.pem
+        key_file: cert/serverKey.pem
+        client_cert_file: cert/clientCert.pem
+
+inmemory: false
+
+# database settings
+db:
+    driver: postgres
+    host: postgres
+    port: 5432
+    user: event-db
+    password: event-db
+    name: event-db
+
+# logging settings
+logger:
+    filepath:
+    level: debug # debug, info, warn, error
+
+# tracing settings
+tracer:
+    enable: true
+    host: otel_collector
+    port: 4317
+
+# metric settings
+metrics:
+    enable: true
+    host: otel_collector
+    port: 4317
+
+# JWT auth
+auth:
+    secret_key: PNvEBrLW+zU7SPi+nqmY5KD6FVecuQW1VHFRUI8xAGKM4JnIvR3zQescAq
+    token_validity_period: 15	# in minutes
