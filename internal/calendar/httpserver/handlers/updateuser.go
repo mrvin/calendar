@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 	"golang.org/x/crypto/bcrypt"
@@ -26,9 +27,9 @@ type RequestUpdateUser struct {
 
 func NewUpdateUser(updater UserUpdater) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		userName := GetUserNameFromContext(req.Context())
+		userName, err := auth.GetUsernameFromCtx(req.Context())
 		if userName == "" {
-			err := fmt.Errorf("UpdateUser: %w", ErrUserNameIsEmpty)
+			err := fmt.Errorf("UpdateUser: %w", err)
 			slog.Error(err.Error())
 			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
 			return

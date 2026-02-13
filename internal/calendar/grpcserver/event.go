@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/grpcapi"
 	"github.com/mrvin/calendar/internal/storage"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -23,8 +24,11 @@ func (s *Server) CreateEvent(ctx context.Context, pbEvent *grpcapi.CreateEventRe
 		return nil, err
 	}
 
-	userName := GetUserName(ctx)
-	user, err := s.authService.GetUser(ctx, userName)
+	username, err := auth.GetUsernameFromCtx(ctx)
+	if err != nil {
+		panic(err)
+	}
+	user, err := s.authService.GetUser(ctx, username)
 	if err != nil {
 		err = fmt.Errorf("get user: %w", err)
 		slog.Error(err.Error())
@@ -47,15 +51,6 @@ func (s *Server) CreateEvent(ctx context.Context, pbEvent *grpcapi.CreateEventRe
 	}
 
 	return &grpcapi.CreateEventResponse{Id: id}, nil
-}
-
-func (s *Server) Login(ctx context.Context, req *grpcapi.LoginRequest) (*grpcapi.LoginResponse, error) {
-	tokenString, err := s.authService.Authenticate(ctx, req.GetUsername(), req.GetPassword())
-	if err != nil {
-		slog.Error(err.Error())
-		return nil, err
-	}
-	return &grpcapi.LoginResponse{AccessToken: tokenString}, nil
 }
 
 func (s *Server) GetEvent(ctx context.Context, req *grpcapi.GetEventRequest) (*grpcapi.EventResponse, error) {
@@ -82,14 +77,12 @@ func (s *Server) ListEventsForUser(ctx context.Context, req *grpcapi.ListEventsF
 	}
 	date := req.GetDate().AsTime()
 
-	userName := GetUserName(ctx)
-	if userName == "" {
-		err := fmt.Errorf("user name is empty")
-		slog.Error(err.Error())
-		return nil, err
+	username, err := auth.GetUsernameFromCtx(ctx)
+	if err != nil {
+		panic(err)
 	}
 
-	events, err := s.eventService.ListEventsForUser(ctx, userName, date, int(req.GetDays()))
+	events, err := s.eventService.ListEventsForUser(ctx, username, date, int(req.GetDays()))
 	if err != nil {
 		err := fmt.Errorf("get events for user: %w", err)
 		slog.Error(err.Error())

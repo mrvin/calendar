@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
@@ -17,9 +18,9 @@ type UserDeleter interface {
 
 func NewDeleteUser(deleter UserDeleter) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		userName := GetUserNameFromContext(req.Context())
+		userName, err := auth.GetUsernameFromCtx(req.Context())
 		if userName == "" {
-			err := fmt.Errorf("DeleteUser: %w", ErrUserNameIsEmpty)
+			err := fmt.Errorf("DeleteUser: %w", err)
 			slog.Error(err.Error())
 			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
 			return

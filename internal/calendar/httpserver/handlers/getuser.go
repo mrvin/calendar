@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	log "github.com/mrvin/calendar/internal/logger"
+	"github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
@@ -30,7 +30,7 @@ func NewGetUser(getter UserGetter) http.HandlerFunc {
 		op := "Get user info: "
 		ctx := req.Context()
 
-		username, err := log.GetUsernameFromCtx(ctx)
+		username, err := auth.GetUsernameFromCtx(ctx)
 		if err != nil {
 			err := fmt.Errorf("get username from ctx: %w", err)
 			slog.ErrorContext(ctx, op+err.Error())

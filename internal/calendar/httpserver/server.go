@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	authservice "github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/calendar/httpserver/handlers"
-	authservice "github.com/mrvin/calendar/internal/calendar/service/auth"
 	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
 	"github.com/mrvin/calendar/pkg/http/logger"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -45,12 +45,12 @@ type Server struct {
 func New(conf *Conf, auth *authservice.AuthService, events *eventservice.EventService) *Server {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(http.MethodPost+" /signup", handlers.NewSignup(auth))
-	mux.HandleFunc(http.MethodGet+" /login", handlers.NewSignup(auth))
-
-	mux.HandleFunc(http.MethodGet+" /user", auth.Authorized(handlers.NewGetUser(auth)))
-	mux.HandleFunc(http.MethodPut+" /user", auth.Authorized(handlers.NewUpdateUser(auth)))
-	mux.HandleFunc(http.MethodDelete+" /user", auth.Authorized(handlers.NewDeleteUser(auth)))
+	mux.HandleFunc(http.MethodPost+" /api/auth/register", handlers.ErrorHandler("Register", handlers.NewRegister(auth)))
+	mux.HandleFunc(http.MethodPost+" /api/auth/login", handlers.ErrorHandler("Login", handlers.NewLogin(auth)))
+	//	mux.HandleFunc(http.MethodPost+" /api/auth/refresh")
+	//	mux.HandleFunc(http.MethodPost+" /api/auth/logout")
+	//  mux.HandleFunc(http.MethodGet+" /api/auth/me", auth.Authorized(handlers.NewGetUser(auth)))
+	// 	mux.HandleFunc(http.MethodDelete+" /api/auth/me", auth.Authorized(handlers.NewDeleteUser(auth)))
 
 	mux.HandleFunc(http.MethodPost+" /event", auth.Authorized(handlers.NewCreateEvent(events)))
 	mux.HandleFunc(http.MethodGet+" /event/{id}", auth.Authorized(handlers.NewGetEvent(events)))

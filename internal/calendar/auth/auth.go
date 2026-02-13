@@ -1,4 +1,4 @@
-package authservice
+package auth
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrAuth = errors.New("compare hash and password")
+var ErrInvalidCredentials = errors.New("invalid username or password")
 
 //nolint:tagliatelle
 type Conf struct {
@@ -82,7 +82,7 @@ func (a *AuthService) ListUsers(ctx context.Context) ([]storage.User, error) {
 	return a.authSt.ListUsers(cctx)
 }
 
-func (a *AuthService) Authenticate(ctx context.Context, username, password string) (string, error) {
+func (a *AuthService) Login(ctx context.Context, username, password string) (string, error) {
 	role, err := a.validCredentials(ctx, username, password)
 	if err != nil {
 		return "", fmt.Errorf("invalid credentials: %w", err)
@@ -110,13 +110,8 @@ func (a *AuthService) validCredentials(ctx context.Context, username, password s
 		return "", fmt.Errorf("get user by name: %w", err)
 	}
 
-	slog.Debug(
-		"Compare hash and password",
-		slog.String("password", password),
-		slog.String("hashedPassword", user.HashPassword),
-	)
 	if err := bcrypt.CompareHashAndPassword([]byte(user.HashPassword), []byte(password)); err != nil {
-		return "", fmt.Errorf("%w: %w", ErrAuth, err)
+		return "", fmt.Errorf("%w: %w", ErrInvalidCredentials, err)
 	}
 
 	return user.Role, nil
@@ -167,4 +162,15 @@ func (a *AuthService) Authorized(next http.HandlerFunc) http.HandlerFunc {
 	}
 
 	return http.HandlerFunc(handler)
+}
+
+func GetUsernameFromCtx(ctx context.Context) (string, error) {
+	if ctx == nil {
+		return "", errors.New("ctx is nil")
+	}
+	if username, ok := ctx.Value(log.ContextKeyUsername).(string); ok {
+		return username, nil
+	}
+
+	return "", errors.New("no username in ctx")
 }

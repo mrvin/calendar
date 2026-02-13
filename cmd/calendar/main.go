@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
+	authservice "github.com/mrvin/calendar/internal/calendar/auth"
+	"github.com/mrvin/calendar/internal/calendar/grpcserver"
 	"github.com/mrvin/calendar/internal/calendar/httpserver"
-	grpcserver "github.com/mrvin/calendar/internal/calendar/server/grpc"
-	authservice "github.com/mrvin/calendar/internal/calendar/service/auth"
 	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
 	"github.com/mrvin/calendar/internal/config"
 	"github.com/mrvin/calendar/internal/logger"

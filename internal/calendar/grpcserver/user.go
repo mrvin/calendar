@@ -5,11 +5,21 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/grpcapi"
 	"github.com/mrvin/calendar/internal/storage"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+func (s *Server) Login(ctx context.Context, req *grpcapi.LoginRequest) (*grpcapi.LoginResponse, error) {
+	tokenString, err := s.authService.Login(ctx, req.GetUsername(), req.GetPassword())
+	if err != nil {
+		slog.Error(err.Error())
+		return nil, err
+	}
+	return &grpcapi.LoginResponse{AccessToken: tokenString}, nil
+}
 
 func (s *Server) CreateUser(ctx context.Context, userpb *grpcapi.CreateUserRequest) (*emptypb.Empty, error) {
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(userpb.GetPassword()), bcrypt.DefaultCost)
@@ -34,11 +44,11 @@ func (s *Server) CreateUser(ctx context.Context, userpb *grpcapi.CreateUserReque
 }
 
 func (s *Server) GetUser(ctx context.Context, _ *grpcapi.GetUserRequest) (*grpcapi.UserResponse, error) {
-	userName := GetUserName(ctx)
-	if userName == "" {
+	username, err := auth.GetUsernameFromCtx(ctx)
+	if err != nil {
 		panic("get user: user name is empty")
 	}
-	user, err := s.authService.GetUser(ctx, userName)
+	user, err := s.authService.GetUser(ctx, username)
 	if err != nil {
 		err := fmt.Errorf("get user: %w", err)
 		slog.Error(err.Error())
@@ -72,8 +82,8 @@ func (s *Server) ListUsers(ctx context.Context, _ *grpcapi.ListUsersRequest) (*g
 }
 
 func (s *Server) UpdateUser(ctx context.Context, userpb *grpcapi.UpdateUserRequest) (*emptypb.Empty, error) {
-	userName := GetUserName(ctx)
-	if userName == "" {
+	_, err := auth.GetUsernameFromCtx(ctx)
+	if err != nil {
 		panic("update user: user name is empty")
 	}
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(userpb.GetPassword()), bcrypt.DefaultCost)
@@ -97,11 +107,11 @@ func (s *Server) UpdateUser(ctx context.Context, userpb *grpcapi.UpdateUserReque
 }
 
 func (s *Server) DeleteUser(ctx context.Context, _ *grpcapi.DeleteUserRequest) (*emptypb.Empty, error) {
-	userName := GetUserName(ctx)
-	if userName == "" {
+	username, err := auth.GetUsernameFromCtx(ctx)
+	if err != nil {
 		panic("delete user: user name is empty")
 	}
-	if err := s.authService.DeleteUser(ctx, userName); err != nil {
+	if err := s.authService.DeleteUser(ctx, username); err != nil {
 		err := fmt.Errorf("delete user: %w", err)
 		slog.Error(err.Error())
 		return nil, err

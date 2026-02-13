@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -12,8 +11,8 @@ import (
 type contextKey int
 
 const (
-	contextKeyRequestID contextKey = iota
-	contextKeyUsername
+	ContextKeyRequestID contextKey = iota
+	ContextKeyUsername
 )
 
 const logFileMode = 0755
@@ -66,29 +65,18 @@ func Init(conf *Conf) (*os.File, error) {
 }
 
 func WithRequestID(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, contextKeyRequestID, requestID)
+	return context.WithValue(ctx, ContextKeyRequestID, requestID)
 }
 
 func WithUsername(ctx context.Context, username string) context.Context {
-	return context.WithValue(ctx, contextKeyUsername, username)
-}
-
-func GetUsernameFromCtx(ctx context.Context) (string, error) {
-	if ctx == nil {
-		return "", errors.New("ctx is nil")
-	}
-	if username, ok := ctx.Value(contextKeyUsername).(string); ok {
-		return username, nil
-	}
-
-	return "", errors.New("no username in ctx")
+	return context.WithValue(ctx, ContextKeyUsername, username)
 }
 
 func (h ContextHandler) Handle(ctx context.Context, r slog.Record) error {
-	if requestID, ok := ctx.Value(contextKeyRequestID).(string); ok {
+	if requestID, ok := ctx.Value(ContextKeyRequestID).(string); ok {
 		r.Add("requestID", requestID)
 	}
-	if username, ok := ctx.Value(contextKeyUsername).(string); ok {
+	if username, ok := ctx.Value(ContextKeyUsername).(string); ok {
 		r.Add("username", username)
 	}
 

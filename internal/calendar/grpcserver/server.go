@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net"
 
-	authservice "github.com/mrvin/calendar/internal/calendar/service/auth"
+	authservice "github.com/mrvin/calendar/internal/calendar/auth"
 	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
 	"github.com/mrvin/calendar/internal/grpcapi"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -121,14 +121,4 @@ func (s *Server) Auth(
 		ctx = context.WithValue(ctx, "username", username)
 	}
 	return handler(ctx, req)
-}
-
-func GetUserName(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	if userName, ok := ctx.Value("username").(string); ok {
-		return userName
-	}
-	return ""
 }

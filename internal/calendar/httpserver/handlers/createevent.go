@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
@@ -33,9 +34,9 @@ type ResponseCreateEvent struct {
 
 func NewCreateEvent(creator EventCreator) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
-		userName := GetUserNameFromContext(req.Context())
+		userName, err := auth.GetUsernameFromCtx(req.Context())
 		if userName == "" {
-			err := fmt.Errorf("CreateEvent: %w", ErrUserNameIsEmpty)
+			err := fmt.Errorf("CreateEvent: %w", err)
 			slog.Error(err.Error())
 			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
 			return
