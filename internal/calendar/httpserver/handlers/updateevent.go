@@ -6,80 +6,92 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"github.com/mrvin/calendar/internal/calendar/auth"
+	"github.com/mrvin/calendar/internal/logger"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
 
 type EventUpdater interface {
-	UpdateEvent(ctx context.Context, event *storage.Event) error
+	UpdateEvent(ctx context.Context, username string, id uuid.UUID, event *storage.Event) error
 }
 
-//nolint:tagliatelle
 type RequestUpdateEvent struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"       validate:"required,min=2,max=64"`
-	Description string    `json:"description" validate:"required,min=2,max=512"`
-	StartTime   time.Time `json:"start_time"  validate:"required"`
-	StopTime    time.Time `json:"stop_time"   validate:"required"`
+	Title        string         `json:"title"                   validate:"required,min=2,max=64"`
+	Description  string         `json:"description,omitempty"   validate:"omitempty,min=2,max=512"`
+	StartTime    time.Time      `json:"start_time"              validate:"required"`
+	EndTime      time.Time      `json:"end_time"                validate:"required"`
+	NotifyBefore *time.Duration `json:"notify_before,omitempty" validate:"omitempty"`
 }
 
-func NewUpdateEvent(updater EventUpdater) http.HandlerFunc {
-	return func(res http.ResponseWriter, req *http.Request) {
+func NewUpdateEvent(updater EventUpdater) HandlerFunc {
+	validate := validator.New()
+	return func(res http.ResponseWriter, req *http.Request) (context.Context, int, error) {
+		ctx := req.Context()
+
+		idStr := req.PathValue("id")
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return ctx, http.StatusBadRequest, fmt.Errorf("parse id: %w", err)
+		}
+
+		username, err := auth.GetUsernameFromCtx(ctx)
+		if err != nil {
+			return ctx, http.StatusInternalServerError, fmt.Errorf("getting username from ctx: %w", err)
+		}
+		ctx = logger.WithUsername(ctx, username)
+
 		// Read json request
 		var request RequestUpdateEvent
-
 		body, err := io.ReadAll(req.Body)
 		defer req.Body.Close()
 		if err != nil {
-			err := fmt.Errorf("UpdateEvent: read body req: %w", err)
-			slog.Error(err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			return
+			return ctx, http.StatusBadRequest, fmt.Errorf("read body request: %w", err)
 		}
-
 		if err := json.Unmarshal(body, &request); err != nil {
-			err := fmt.Errorf("UpdateEvent: unmarshal body request: %w", err)
-			slog.Error(err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			return
+			return ctx, http.StatusBadRequest, fmt.Errorf("unmarshal body request: %w", err)
 		}
 
 		// Validation
-		if err := validator.New().Struct(request); err != nil {
-			errors := err.(validator.ValidationErrors)
-			err := fmt.Errorf("UpdateEvent: invalid request: %s", errors)
-			slog.Error(err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			return
+		if err := validate.Struct(request); err != nil {
+			var vErrors validator.ValidationErrors
+			if errors.As(err, &vErrors) {
+				return ctx, http.StatusBadRequest, fmt.Errorf("invalid request: tag: %s value: %s", vErrors[0].Tag(), vErrors[0].Value())
+			}
+			return ctx, http.StatusInternalServerError, fmt.Errorf("validation: %w", err)
+		}
+		if request.StartTime.After(request.EndTime) {
+			return ctx, http.StatusBadRequest, errors.New("start_time must be before or equal to end_time")
 		}
 
 		event := storage.Event{
-			ID:          request.ID,
-			Title:       request.Title,
-			Description: request.Description,
-			StartTime:   request.StartTime,
-			StopTime:    request.StopTime,
+			ID:           id,
+			Title:        request.Title,
+			Description:  request.Description,
+			StartTime:    request.StartTime,
+			EndTime:      request.EndTime,
+			NotifyBefore: request.NotifyBefore,
+			Username:     username,
 		}
-
-		if err := updater.UpdateEvent(req.Context(), &event); err != nil {
-			err := fmt.Errorf("UpdateEvent: update event in storage: %w", err)
-			slog.Error(err.Error())
-			if errors.Is(err, storage.ErrNoEvent) {
-				httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			} else {
-				httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
+		if err := updater.UpdateEvent(ctx, username, id, &event); err != nil {
+			err = fmt.Errorf("updating event to storage: %w", err)
+			if errors.Is(err, storage.ErrDateBusy) {
+				return ctx, http.StatusConflict, err
 			}
-			return
+			if errors.Is(err, storage.ErrEventNotFound) {
+				return ctx, http.StatusNotFound, err
+			}
+			return ctx, http.StatusInternalServerError, err
 		}
 
 		// Write json response
 		httpresponse.WriteOK(res, http.StatusOK)
 
-		slog.Info("Event information update was successful")
+		return ctx, http.StatusOK, nil
 	}
 }

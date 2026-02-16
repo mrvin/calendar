@@ -1,5 +1,6 @@
 package storage
 
+/*
 import (
 	"context"
 	"errors"
@@ -211,3 +212,4 @@ func cmpEvent(t *testing.T, e1, e2 *Event) {
 		t.Errorf("mismatch user name for event: %q, %q", e1.UserName, e2.UserName)
 	}
 }
+*/

@@ -4,16 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	log "github.com/mrvin/calendar/internal/logger"
+	"github.com/mrvin/calendar/internal/logger"
 	"github.com/mrvin/calendar/internal/storage"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -25,64 +22,16 @@ type Conf struct {
 	TokenValidityPeriod int    `yaml:"token_validity_period"`
 }
 
-type AuthService struct {
+type Auth struct {
 	conf   *Conf
 	authSt storage.UserStorage
-	tr     trace.Tracer // Think about it.
 }
 
-func New(st storage.UserStorage, conf *Conf) *AuthService {
-	return &AuthService{
-		conf,
-		st,
-		otel.GetTracerProvider().Tracer("Auth service"),
-	}
+func New(st storage.UserStorage, conf *Conf) *Auth {
+	return &Auth{conf, st}
 }
 
-func (a *AuthService) CreateUser(ctx context.Context, user *storage.User) error {
-	cctx, sp := a.tr.Start(ctx, "CreateUser")
-	defer sp.End()
-
-	slog.Debug(
-		"Create user",
-		slog.String("Name", user.Name),
-		slog.String("Hash Password", user.HashPassword),
-		slog.String("Email", user.Email),
-		slog.String("Role", user.Role),
-	)
-
-	return a.authSt.CreateUser(cctx, user)
-}
-
-func (a *AuthService) GetUser(ctx context.Context, userName string) (*storage.User, error) {
-	cctx, sp := a.tr.Start(ctx, "GetUser")
-	defer sp.End()
-
-	return a.authSt.GetUser(cctx, userName)
-}
-
-func (a *AuthService) UpdateUser(ctx context.Context, user *storage.User) error {
-	cctx, sp := a.tr.Start(ctx, "UpdateUser")
-	defer sp.End()
-
-	return a.authSt.UpdateUser(cctx, user)
-}
-
-func (a *AuthService) DeleteUser(ctx context.Context, userName string) error {
-	cctx, sp := a.tr.Start(ctx, "DeleteUser")
-	defer sp.End()
-
-	return a.authSt.DeleteUser(cctx, userName)
-}
-
-func (a *AuthService) ListUsers(ctx context.Context) ([]storage.User, error) {
-	cctx, sp := a.tr.Start(ctx, "GetAllUsers")
-	defer sp.End()
-
-	return a.authSt.ListUsers(cctx)
-}
-
-func (a *AuthService) Login(ctx context.Context, username, password string) (string, error) {
+func (a *Auth) Login(ctx context.Context, username, password string) (string, error) {
 	role, err := a.validCredentials(ctx, username, password)
 	if err != nil {
 		return "", fmt.Errorf("invalid credentials: %w", err)
@@ -104,7 +53,7 @@ func (a *AuthService) Login(ctx context.Context, username, password string) (str
 	return tokenString, nil
 }
 
-func (a *AuthService) validCredentials(ctx context.Context, username, password string) (string, error) {
+func (a *Auth) validCredentials(ctx context.Context, username, password string) (string, error) {
 	user, err := a.authSt.GetUser(ctx, username)
 	if err != nil {
 		return "", fmt.Errorf("get user by name: %w", err)
@@ -116,7 +65,7 @@ func (a *AuthService) validCredentials(ctx context.Context, username, password s
 
 	return user.Role, nil
 }
-func (a *AuthService) ParseToken(tokenString string) (jwt.MapClaims, error) {
+func (a *Auth) ParseToken(tokenString string) (jwt.MapClaims, error) {
 	// Validate token.
 	token, err := jwt.Parse(
 		tokenString,
@@ -139,7 +88,7 @@ func (a *AuthService) ParseToken(tokenString string) (jwt.MapClaims, error) {
 }
 
 // Authorized is middleware.
-func (a *AuthService) Authorized(next http.HandlerFunc) http.HandlerFunc {
+func (a *Auth) Authorized(next http.HandlerFunc) http.HandlerFunc {
 	handler := func(res http.ResponseWriter, req *http.Request) {
 		authHeaderValue := req.Header.Get("Authorization")
 		const bearerPrefix = "Bearer "
@@ -156,7 +105,7 @@ func (a *AuthService) Authorized(next http.HandlerFunc) http.HandlerFunc {
 		}
 		username := claims["username"]
 
-		ctx := log.WithUsername(req.Context(), username.(string))
+		ctx := logger.WithUsername(req.Context(), username.(string))
 
 		next(res, req.WithContext(ctx)) // Pass request to next handler
 	}
@@ -168,7 +117,7 @@ func GetUsernameFromCtx(ctx context.Context) (string, error) {
 	if ctx == nil {
 		return "", errors.New("ctx is nil")
 	}
-	if username, ok := ctx.Value(log.ContextKeyUsername).(string); ok {
+	if username, ok := ctx.Value(logger.ContextKeyUsername).(string); ok {
 		return username, nil
 	}
 

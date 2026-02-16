@@ -1,5 +1,5 @@
 ## Build
-FROM golang:1.23.1-alpine AS build
+FROM golang:1.26.0-alpine AS build
 
 LABEL maintainer="mrvin v.v.vinogradovv@gmail.com"
 

@@ -5,7 +5,7 @@ services:
          context: ../
          dockerfile: cmd/calendar/Dockerfile
         ports:
-         - "8088:8088" # REST API
+         - "8080:8080" # REST API
          - "55555:55555" # gRPC API
         environment:
          ENV: PROD

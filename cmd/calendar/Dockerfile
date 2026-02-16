@@ -1,4 +1,4 @@
-FROM golang:1.23.1-alpine
+FROM golang:1.26.0-alpine
 
 LABEL maintainer="mrvin v.v.vinogradovv@gmail.com"
 
@@ -10,7 +10,6 @@ COPY cmd/calendar cmd/calendar
 COPY Makefile .
 COPY internal internal
 COPY pkg pkg
-COPY cert cert
 
 COPY deployments/start.sh /
 
@@ -22,7 +21,7 @@ RUN cd cmd/calendar/ && make build
 
 ENV TZ=Europe/Moscow
 
-EXPOSE 8088 55555
+EXPOSE 8080 55555
 
 CMD ["/start.sh"]
 

@@ -4,45 +4,46 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
-	"strconv"
 
+	"github.com/google/uuid"
+	"github.com/mrvin/calendar/internal/calendar/auth"
+	"github.com/mrvin/calendar/internal/logger"
 	"github.com/mrvin/calendar/internal/storage"
 	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
 
 type EventDeleter interface {
-	DeleteEvent(ctx context.Context, id int64) error
+	DeleteEvent(ctx context.Context, username string, id uuid.UUID) error
 }
 
-func NewDeleteEvent(deleter EventDeleter) http.HandlerFunc {
-	return func(res http.ResponseWriter, req *http.Request) {
-		op := "Delete event: "
+func NewDeleteEvent(deleter EventDeleter) HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) (context.Context, int, error) {
 		ctx := req.Context()
+
 		idStr := req.PathValue("id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
+		id, err := uuid.Parse(idStr)
 		if err != nil {
-			err := fmt.Errorf("convert id: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			return
+			return ctx, http.StatusBadRequest, fmt.Errorf("parse id: %w", err)
 		}
 
-		if err := deleter.DeleteEvent(ctx, id); err != nil {
-			err := fmt.Errorf("delete event from storage: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			if errors.Is(err, storage.ErrNoEvent) {
-				httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			} else {
-				httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
+		username, err := auth.GetUsernameFromCtx(ctx)
+		if err != nil {
+			return ctx, http.StatusInternalServerError, fmt.Errorf("getting username from ctx: %w", err)
+		}
+		ctx = logger.WithUsername(ctx, username)
+
+		if err := deleter.DeleteEvent(ctx, username, id); err != nil {
+			err := fmt.Errorf("deleting event from storage: %w", err)
+			if errors.Is(err, storage.ErrEventNotFound) {
+				return ctx, http.StatusNotFound, err
 			}
-			return
+			return ctx, http.StatusInternalServerError, err
 		}
 
 		// Write json response
-		httpresponse.WriteOK(res, http.StatusOK)
+		httpresponse.WriteOK(res, http.StatusNoContent)
 
-		slog.Info("Delete event")
+		return ctx, http.StatusNoContent, nil
 	}
 }

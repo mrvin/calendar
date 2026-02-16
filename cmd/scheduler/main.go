@@ -13,13 +13,13 @@ import (
 	"github.com/mrvin/calendar/internal/logger"
 	"github.com/mrvin/calendar/internal/queue"
 	"github.com/mrvin/calendar/internal/queue/rabbitmq"
-	sqlstorage "github.com/mrvin/calendar/internal/storage/sql"
+	"github.com/mrvin/calendar/internal/storage/postgresql"
 )
 
 //nolint:tagliatelle
 type Config struct {
 	Queue       queue.Conf      `yaml:"queue"`
-	DB          sqlstorage.Conf `yaml:"db"`
+	DB          postgresql.Conf `yaml:"db"`
 	Logger      logger.Conf     `yaml:"logger"`
 	SchedPeriod int             `yaml:"schedule_period"`
 }
@@ -51,7 +51,7 @@ func main() {
 
 	ctxInitStorag, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	st, err := sqlstorage.New(ctxInitStorag, &conf.DB)
+	st, err := postgresql.New(ctxInitStorag, &conf.DB)
 	if err != nil {
 		slog.Error("Failed to init storag: " + err.Error())
 		return
@@ -78,7 +78,9 @@ func main() {
 	for {
 		ctxGetAllEvents, cancel := context.WithTimeout(ctx, 1*time.Second)
 		defer cancel()
-		events, err := st.ListEvents(ctxGetAllEvents)
+		var startWindow, endWindow time.Time
+		var username string
+		events, err := st.ListEvents(ctxGetAllEvents, username, startWindow, endWindow)
 		if err != nil {
 			slog.Error("List event: " + err.Error())
 		}
@@ -89,12 +91,13 @@ func main() {
 			}
 			nowTime := time.Now()
 			if event.StartTime.After(nowTime) && event.StartTime.Before(nowTime.Add(schedPeriod)) {
-				user, err := st.GetUser(ctx, event.UserName)
+				user, err := st.GetUser(ctx, event.Username)
 				if err != nil {
 					slog.Error(err.Error())
 					continue
 				}
-				alertEvent := queue.AlertEvent{EventID: event.ID, Title: event.Title, Description: event.Description,
+				id := int64(0)
+				alertEvent := queue.AlertEvent{EventID: id, Title: event.Title, Description: event.Description,
 					StartTime: event.StartTime, UserName: user.Name, UserEmail: user.Email}
 
 				byteAlertEvent, err := queue.EncodeAlertEvent(&alertEvent)
@@ -109,7 +112,7 @@ func main() {
 					slog.Error(err.Error())
 					continue
 				}
-				slog.Info("Put alert message in queue", slog.Int64("Event id", event.ID))
+				slog.Info("Put alert message in queue", slog.Int64("Event id", id))
 			}
 		}
 		select {

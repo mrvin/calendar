@@ -4,52 +4,56 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-var ErrNoUser = errors.New("no user with name")
-var ErrUserExists = errors.New("user exists")
-var ErrNoEvent = errors.New("no event with id")
+var (
+	ErrUserExists   = errors.New("user already exists")
+	ErrUserNotFound = errors.New("user not found")
 
-type EventStorage interface {
-	CreateEvent(ctx context.Context, event *Event) (int64, error)
-	GetEvent(ctx context.Context, id int64) (*Event, error)
-	UpdateEvent(ctx context.Context, event *Event) error
-	DeleteEvent(ctx context.Context, id int64) error
-
-	ListEvents(ctx context.Context) ([]Event, error)
-	ListEventsForUser(ctx context.Context, name string) ([]Event, error)
-}
+	ErrEventNotFound = errors.New("event not found")
+	ErrDateBusy      = errors.New("date already busy")
+)
 
 type UserStorage interface {
 	CreateUser(ctx context.Context, user *User) error
 	GetUser(ctx context.Context, name string) (*User, error)
-	UpdateUser(ctx context.Context, user *User) error
 	DeleteUser(ctx context.Context, name string) error
+}
 
-	ListUsers(ctx context.Context) ([]User, error)
+type EventStorage interface {
+	CreateEvent(ctx context.Context, event *Event) (uuid.UUID, error)
+	GetEvent(ctx context.Context, username string, id uuid.UUID) (*Event, error)
+	ListEvents(ctx context.Context, username string, startWindow, endWindow time.Time) ([]Event, error)
+	UpdateEvent(ctx context.Context, username string, id uuid.UUID, event *Event) error
+	DeleteEvent(ctx context.Context, username string, id uuid.UUID) error
 }
 
 type Storage interface {
-	EventStorage
 	UserStorage
+	EventStorage
 }
 
-//nolint:tagliatelle
-type Event struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description,omitempty"`
-	StartTime   time.Time `json:"start_time"`
-	StopTime    time.Time `json:"stop_time,omitempty"`
-	UserName    string    `json:"user_name"`
-	//	CreatedAt   time.Time
-	//	UpdatedAt   time.Time
-}
-
-//nolint:tagliatelle
 type User struct {
-	Name         string `json:"name"`
-	HashPassword string `json:"hash_password"`
-	Email        string `json:"email"`
-	Role         string `json:"role"`
+	Name         string
+	HashPassword string
+	Email        string
+	Role         string
+
+	//	UpdatedAt   time.Time
+	//	CreatedAt   time.Time
+}
+
+type Event struct {
+	ID           uuid.UUID
+	Title        string
+	Description  string
+	StartTime    time.Time
+	EndTime      time.Time
+	NotifyBefore *time.Duration
+	Username     string
+
+	//	UpdatedAt   time.Time
+	//	CreatedAt   time.Time
 }

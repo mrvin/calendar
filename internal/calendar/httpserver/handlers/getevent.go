@@ -5,82 +5,76 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/mrvin/calendar/internal/calendar/auth"
+	"github.com/mrvin/calendar/internal/logger"
 	"github.com/mrvin/calendar/internal/storage"
-	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
 
 type EventGetter interface {
-	GetEvent(ctx context.Context, id int64) (*storage.Event, error)
+	GetEvent(ctx context.Context, username string, id uuid.UUID) (*storage.Event, error)
 }
 
 //nolint:tagliatelle
 type ResponseGetEvent struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description,omitempty"`
-	StartTime   time.Time `json:"start_time"`
-	StopTime    time.Time `json:"stop_time,omitempty"`
-	UserName    string    `json:"user_name"`
-	Status      string    `json:"status"`
+	ID           uuid.UUID      `json:"id"`
+	Title        string         `json:"title"`
+	Description  string         `json:"description,omitempty"`
+	StartTime    time.Time      `json:"start_time"`
+	EndTime      time.Time      `json:"end_time"`
+	NotifyBefore *time.Duration `json:"notify_before,omitempty"`
+	Status       string         `json:"status"`
 }
 
-func NewGetEvent(getter EventGetter) http.HandlerFunc {
-	return func(res http.ResponseWriter, req *http.Request) {
-		op := "Get event: "
+func NewGetEvent(getter EventGetter) HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) (context.Context, int, error) {
 		ctx := req.Context()
+
 		idStr := req.PathValue("id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
+		id, err := uuid.Parse(idStr)
 		if err != nil {
-			err := fmt.Errorf("convert id: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			return
+			return ctx, http.StatusBadRequest, fmt.Errorf("parse id: %w", err)
 		}
 
-		event, err := getter.GetEvent(ctx, id)
+		username, err := auth.GetUsernameFromCtx(ctx)
 		if err != nil {
-			err := fmt.Errorf("get event from storage: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			if errors.Is(err, storage.ErrNoEvent) {
-				httpresponse.WriteError(res, err.Error(), http.StatusBadRequest)
-			} else {
-				httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
+			return ctx, http.StatusInternalServerError, fmt.Errorf("getting username from ctx: %w", err)
+		}
+		ctx = logger.WithUsername(ctx, username)
+
+		event, err := getter.GetEvent(ctx, username, id)
+		if err != nil {
+			err := fmt.Errorf("getting event from storage: %w", err)
+			if errors.Is(err, storage.ErrEventNotFound) {
+				return ctx, http.StatusNotFound, err
 			}
-			return
+			return ctx, http.StatusInternalServerError, err
 		}
 
 		// Write json response
 		response := ResponseGetEvent{
-			ID:          event.ID,
-			Title:       event.Title,
-			Description: event.Description,
-			StartTime:   event.StartTime,
-			StopTime:    event.StopTime,
-			UserName:    event.UserName,
-			Status:      "OK",
+			ID:           event.ID,
+			Title:        event.Title,
+			Description:  event.Description,
+			StartTime:    event.StartTime,
+			EndTime:      event.EndTime,
+			NotifyBefore: event.NotifyBefore,
+			Status:       "OK",
 		}
 		jsonResponseEvent, err := json.Marshal(response)
 		if err != nil {
-			err := fmt.Errorf("marshal response: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
-			return
+			return ctx, http.StatusInternalServerError, fmt.Errorf("marshal response: %w", err)
 		}
 
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
 		if _, err := res.Write(jsonResponseEvent); err != nil {
-			err := fmt.Errorf("write response: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
-			return
+			return ctx, http.StatusInternalServerError, fmt.Errorf("write response: %w", err)
 		}
 
-		slog.InfoContext(ctx, "Get event")
+		return ctx, http.StatusOK, nil
 	}
 }

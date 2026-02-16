@@ -5,75 +5,61 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/mrvin/calendar/internal/calendar/auth"
+	"github.com/mrvin/calendar/internal/logger"
 	"github.com/mrvin/calendar/internal/storage"
-	httpresponse "github.com/mrvin/calendar/pkg/http/response"
 )
 
 type UserGetter interface {
-	GetUser(ctx context.Context, name string) (*storage.User, error)
+	GetUser(ctx context.Context, username string) (*storage.User, error)
 }
 
 type ResponseGetUser struct {
-	Name         string `example:"Bob"            json:"name"`
-	HashPassword string `example:"$3a$10$8.nlQZMRbgpjNNpZzQnZ4OPsuUo1HQ/XFe93qc2tPjBEYlMVFe43W" json:"hashPassword"`
-	Email        string `example:"email@mail.com" json:"email"`
-	Role         string `example:"user"           json:"role"`
-	Status       string `example:"OK"             json:"status"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	Status   string `json:"status"`
 }
 
-func NewGetUser(getter UserGetter) http.HandlerFunc {
-	return func(res http.ResponseWriter, req *http.Request) {
-		op := "Get user info: "
+func NewGetUser(getter UserGetter) HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) (context.Context, int, error) {
 		ctx := req.Context()
 
 		username, err := auth.GetUsernameFromCtx(ctx)
 		if err != nil {
-			err := fmt.Errorf("get username from ctx: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
-			return
+			return ctx, http.StatusInternalServerError, fmt.Errorf("getting username from ctx: %w", err)
 		}
+		ctx = logger.WithUsername(ctx, username)
 
 		user, err := getter.GetUser(ctx, username)
 		if err != nil {
-			err := fmt.Errorf("get user info from storage: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			if errors.Is(err, storage.ErrNoUser) {
-				httpresponse.WriteError(res, err.Error(), http.StatusNotFound)
-			} else {
-				httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
+			err := fmt.Errorf("getting user from storage: %w", err)
+			if errors.Is(err, storage.ErrUserNotFound) {
+				return ctx, http.StatusNotFound, err
 			}
-			return
+			return ctx, http.StatusInternalServerError, err
+
 		}
 
 		// Write json response
 		response := ResponseGetUser{
-			Name:         user.Name,
-			HashPassword: user.HashPassword,
-			Email:        user.Email,
-			Role:         user.Role,
-			Status:       "OK",
+			Username: user.Name,
+			Email:    user.Email,
+			Role:     user.Role,
+			Status:   "OK",
 		}
 		jsonResponse, err := json.Marshal(response)
 		if err != nil {
-			err := fmt.Errorf("marshal response: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
-			return
+			return ctx, http.StatusInternalServerError, fmt.Errorf("marshal response: %w", err)
 		}
 		res.Header().Set("Content-Type", "application/json")
 		res.WriteHeader(http.StatusOK)
 		if _, err := res.Write(jsonResponse); err != nil {
-			err := fmt.Errorf("write response: %w", err)
-			slog.ErrorContext(ctx, op+err.Error())
-			httpresponse.WriteError(res, err.Error(), http.StatusInternalServerError)
-			return
+			return ctx, http.StatusInternalServerError, fmt.Errorf("write response: %w", err)
 		}
 
-		slog.InfoContext(ctx, "Get user info")
+		return ctx, http.StatusOK, nil
 	}
 }

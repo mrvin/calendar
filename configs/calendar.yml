@@ -6,8 +6,8 @@ grpc:
 # HTTP server setting
 http:
     host: backend
-    port: 8088
-    is_https: true # Enable HTTPS
+    port: 8080
+    is_https: false # Enable HTTPS
     https:
         cert_file: cert/serverCert.pem
         key_file: cert/serverKey.pem
@@ -16,7 +16,6 @@ inmemory: false
 
 # database settings
 db:
-    driver: postgres
     host: postgres
     port: 5432
     user: event-db

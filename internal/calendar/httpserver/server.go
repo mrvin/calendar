@@ -13,9 +13,8 @@ import (
 
 	authservice "github.com/mrvin/calendar/internal/calendar/auth"
 	"github.com/mrvin/calendar/internal/calendar/httpserver/handlers"
-	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
+	"github.com/mrvin/calendar/internal/storage"
 	"github.com/mrvin/calendar/pkg/http/logger"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const readTimeout = 5   // in second
@@ -42,22 +41,29 @@ type Server struct {
 	conf *Conf
 }
 
-func New(conf *Conf, auth *authservice.AuthService, events *eventservice.EventService) *Server {
+func New(conf *Conf, st storage.Storage, auth *authservice.Auth) *Server {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(http.MethodPost+" /api/auth/register", handlers.ErrorHandler("Register", handlers.NewRegister(auth)))
+	// info
+	mux.HandleFunc(http.MethodGet+" /api/health", handlers.Health)
+	mux.HandleFunc(http.MethodGet+" /api/info", handlers.ErrorHandler("Info", handlers.Info))
+
+	// Users
+	mux.HandleFunc(http.MethodPost+" /api/auth/register", handlers.ErrorHandler("Register", handlers.NewRegister(st)))
 	mux.HandleFunc(http.MethodPost+" /api/auth/login", handlers.ErrorHandler("Login", handlers.NewLogin(auth)))
+	mux.HandleFunc(http.MethodGet+" /api/auth/me", auth.Authorized(handlers.ErrorHandler("Get user", handlers.NewGetUser(st))))
+	mux.HandleFunc(http.MethodDelete+" /api/auth/me", auth.Authorized(handlers.ErrorHandler("Delete user", handlers.NewDeleteUser(st))))
 	//	mux.HandleFunc(http.MethodPost+" /api/auth/refresh")
 	//	mux.HandleFunc(http.MethodPost+" /api/auth/logout")
-	//  mux.HandleFunc(http.MethodGet+" /api/auth/me", auth.Authorized(handlers.NewGetUser(auth)))
-	// 	mux.HandleFunc(http.MethodDelete+" /api/auth/me", auth.Authorized(handlers.NewDeleteUser(auth)))
 
-	mux.HandleFunc(http.MethodPost+" /event", auth.Authorized(handlers.NewCreateEvent(events)))
-	mux.HandleFunc(http.MethodGet+" /event/{id}", auth.Authorized(handlers.NewGetEvent(events)))
-	mux.HandleFunc(http.MethodPut+" /event", auth.Authorized(handlers.NewUpdateEvent(events)))
-	mux.HandleFunc(http.MethodDelete+" /event/{id}", auth.Authorized(handlers.NewDeleteEvent(events)))
+	// Events
+	mux.HandleFunc(http.MethodPost+" /api/events", auth.Authorized(handlers.ErrorHandler("Create event", handlers.NewCreateEvent(st))))
+	mux.HandleFunc(http.MethodGet+" /api/events/{id}", auth.Authorized(handlers.ErrorHandler("Get event", handlers.NewGetEvent(st))))
+	mux.HandleFunc(http.MethodGet+" /api/events", auth.Authorized(handlers.ErrorHandler("List events", handlers.NewListEvents(st))))
+	mux.HandleFunc(http.MethodPut+" /api/events/{id}", auth.Authorized(handlers.ErrorHandler("Update event", handlers.NewUpdateEvent(st))))
+	mux.HandleFunc(http.MethodDelete+" /api/events/{id}", auth.Authorized(handlers.ErrorHandler("Delete event", handlers.NewDeleteEvent(st))))
 
-	loggerServer := logger.Logger{Inner: otelhttp.NewHandler(mux, "HTTP")}
+	loggerServer := logger.Logger{Inner: mux}
 
 	return &Server{
 		//nolint:exhaustruct

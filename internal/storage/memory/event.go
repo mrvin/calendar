@@ -1,89 +1,86 @@
-package memorystorage
+package memory
 
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/mrvin/calendar/internal/storage"
 )
 
-func (s *Storage) CreateEvent(ctx context.Context, event *storage.Event) (int64, error) {
-	if _, err := s.GetUser(ctx, event.UserName); err != nil {
-		return 0, err
-	}
+func (s *Storage) CreateEvent(_ context.Context, event *storage.Event) (uuid.UUID, error) {
+	event.ID = uuid.New()
 
 	s.muEvents.Lock()
 	defer s.muEvents.Unlock()
 
-	s.maxIDEvent++
-	event.ID = s.maxIDEvent
-	s.mEvents[s.maxIDEvent] = *event
+	for _, existEvent := range s.mEvents {
+		if existEvent.Username == event.Username {
+			if existEvent.StartTime.Before(event.EndTime) && existEvent.EndTime.After(event.StartTime) {
+				return uuid.Nil, storage.ErrDateBusy
+			}
+		}
+	}
+	s.mEvents[event.ID] = *event
 
 	return event.ID, nil
 }
 
-func (s *Storage) GetEvent(_ context.Context, id int64) (*storage.Event, error) {
+func (s *Storage) GetEvent(_ context.Context, username string, id uuid.UUID) (*storage.Event, error) {
 	s.muEvents.RLock()
-	defer s.muEvents.RUnlock()
-
-	user, ok := s.mEvents[id]
-	if !ok {
-		return nil, fmt.Errorf("%w: %d", storage.ErrNoEvent, id)
+	event, ok := s.mEvents[id]
+	s.muEvents.RUnlock()
+	if !ok || event.Username != username {
+		return nil, fmt.Errorf("%w: %s", storage.ErrEventNotFound, id)
 	}
 
-	return &user, nil
+	return &event, nil
 }
 
-func (s *Storage) UpdateEvent(_ context.Context, newEvent *storage.Event) error {
+func (s *Storage) DeleteEvent(_ context.Context, username string, id uuid.UUID) error {
 	s.muEvents.Lock()
 	defer s.muEvents.Unlock()
 
-	oldEvent, ok := s.mEvents[newEvent.ID]
-	if !ok {
-		return fmt.Errorf("%w: %d", storage.ErrNoEvent, newEvent.ID)
-	}
-
-	oldEvent.Title = newEvent.Title
-	oldEvent.Description = newEvent.Description
-	oldEvent.StartTime = newEvent.StartTime
-	oldEvent.StopTime = newEvent.StopTime
-
-	s.mEvents[newEvent.ID] = oldEvent
-
-	return nil
-}
-
-func (s *Storage) DeleteEvent(_ context.Context, id int64) error {
-	s.muEvents.Lock()
-	defer s.muEvents.Unlock()
-
-	if _, ok := s.mEvents[id]; !ok {
-		return fmt.Errorf("%w: %d", storage.ErrNoEvent, id)
+	if event, ok := s.mEvents[id]; !ok || event.Username != username {
+		return fmt.Errorf("%w: %s", storage.ErrEventNotFound, id)
 	}
 	delete(s.mEvents, id)
 
 	return nil
 }
 
-func (s *Storage) ListEvents(_ context.Context) ([]storage.Event, error) {
-	events := make([]storage.Event, 0)
+func (s *Storage) UpdateEvent(_ context.Context, username string, id uuid.UUID, event *storage.Event) error {
+	s.muEvents.Lock()
+	defer s.muEvents.Unlock()
 
-	s.muEvents.RLock()
-	for _, event := range s.mEvents {
-		events = append(events, event)
+	oldEvent, ok := s.mEvents[id]
+	if !ok || oldEvent.Username != username {
+		return fmt.Errorf("%w: %s", storage.ErrEventNotFound, id)
 	}
-	s.muEvents.RUnlock()
 
-	return events, nil
+	for eventID, existEvent := range s.mEvents {
+		if existEvent.Username == username && eventID != id {
+			if existEvent.StartTime.Before(event.EndTime) && existEvent.EndTime.After(event.StartTime) {
+				return storage.ErrDateBusy
+			}
+		}
+	}
+
+	s.mEvents[id] = *event
+
+	return nil
 }
 
-func (s *Storage) ListEventsForUser(ctx context.Context, name string) ([]storage.Event, error) {
+func (s *Storage) ListEvents(ctx context.Context, username string, startWindow, endWindow time.Time) ([]storage.Event, error) {
 	events := make([]storage.Event, 0)
 
 	s.muEvents.RLock()
 	for _, event := range s.mEvents {
-		if event.UserName == name {
-			events = append(events, event)
+		if event.Username == username {
+			if event.StartTime.Before(endWindow) && event.EndTime.After(startWindow) {
+				events = append(events, event)
+			}
 		}
 	}
 	s.muEvents.RUnlock()

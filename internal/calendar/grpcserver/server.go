@@ -7,8 +7,8 @@ import (
 	"net"
 
 	authservice "github.com/mrvin/calendar/internal/calendar/auth"
-	eventservice "github.com/mrvin/calendar/internal/calendar/service/event"
 	"github.com/mrvin/calendar/internal/grpcapi"
+	"github.com/mrvin/calendar/internal/storage"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
@@ -20,18 +20,18 @@ type Conf struct {
 }
 
 type Server struct {
-	serv         *grpc.Server
-	ln           net.Listener
-	authService  *authservice.AuthService
-	eventService *eventservice.EventService
-	addr         string
+	serv *grpc.Server
+	ln   net.Listener
+	st   storage.Storage
+	auth *authservice.Auth
+	addr string
 }
 
-func New(conf *Conf, auth *authservice.AuthService, events *eventservice.EventService) (*Server, error) {
+func New(conf *Conf, st storage.Storage, auth *authservice.Auth) (*Server, error) {
 	var server Server
 
-	server.authService = auth
-	server.eventService = events
+	server.auth = auth
+	server.st = st
 
 	var err error
 	server.addr = fmt.Sprintf("%s:%d", conf.Host, conf.Port)
@@ -107,7 +107,7 @@ func (s *Server) Auth(
 		}
 		tokenString := reqTokenGetter.GetAccessToken()
 
-		claims, err := s.authService.ParseToken(tokenString)
+		claims, err := s.auth.ParseToken(tokenString)
 		if err != nil {
 			return nil, err
 		}
