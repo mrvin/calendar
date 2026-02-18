@@ -21,7 +21,7 @@ RUN cd cmd/calendar/ && make build
 
 ENV TZ=Europe/Moscow
 
-EXPOSE 8080 55555
+EXPOSE 8080 50051
 
 CMD ["/start.sh"]
 

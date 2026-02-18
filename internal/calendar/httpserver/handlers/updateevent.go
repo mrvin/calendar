@@ -21,6 +21,7 @@ type EventUpdater interface {
 	UpdateEvent(ctx context.Context, username string, id uuid.UUID, event *storage.Event) error
 }
 
+//nolint:tagliatelle
 type RequestUpdateEvent struct {
 	Title        string         `json:"title"                   validate:"required,min=2,max=64"`
 	Description  string         `json:"description,omitempty"   validate:"omitempty,min=2,max=512"`

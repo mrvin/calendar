@@ -7,41 +7,41 @@ import (
 	"net/http"
 )
 
-type ResponsetOK struct {
-	Status string `example:"OK" json:"status"`
+type OK struct {
+	Status string `json:"status"`
 }
 
-type ResponseError struct {
-	Status string `example:"Error"             json:"status"`
-	Error  string `example:"error description" json:"error"`
+type Error struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
 }
 
 func WriteOK(res http.ResponseWriter, status int) {
-	response := ResponsetOK{
+	response := OK{
 		Status: "OK",
 	}
 	jsonResponse, err := json.Marshal(&response)
 	if err != nil {
-		err := fmt.Errorf("WriteOK: marshal error: %w", err)
+		err := fmt.Errorf("WriteOK: marshal response: %w", err)
 		slog.Error(err.Error())
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	res.Header().Set("Content-Type", "application/json")
+	res.Header().Set("Content-Type", "application/json; charset=utf-8")
 	res.WriteHeader(status)
 	if _, err := res.Write(jsonResponse); err != nil {
-		err := fmt.Errorf("WriteOK: write error: %w", err)
+		err := fmt.Errorf("WriteOK: write response: %w", err)
 		slog.Error(err.Error())
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func WriteError(res http.ResponseWriter, msgError string, status int) {
-	response := ResponseError{
+func WriteError(res http.ResponseWriter, description string, status int) {
+	response := Error{
 		Status: "Error",
-		Error:  msgError,
+		Error:  description,
 	}
 
 	jsonResponse, err := json.Marshal(&response)
@@ -52,7 +52,7 @@ func WriteError(res http.ResponseWriter, msgError string, status int) {
 		return
 	}
 
-	res.Header().Set("Content-Type", "application/json")
+	res.Header().Set("Content-Type", "application/json; charset=utf-8")
 	res.WriteHeader(status)
 	if _, err := res.Write(jsonResponse); err != nil {
 		err := fmt.Errorf("WriteError: write error: %w", err)

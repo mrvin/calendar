@@ -8,6 +8,15 @@ curl -i -X POST 'http://localhost:8080/api/auth/register' \
   "email": "bob@mail.com"
 }'
 ```
+```bash
+grpcurl -plaintext \
+-d '{
+  "username": "Alice",
+  "password": "qwerty",
+  "email": "alice@example.com"
+}' \
+localhost:50051 calendar.CalendarService/Register
+```
 
 #### Вход пользователя
 ```bash
@@ -18,17 +27,37 @@ curl -i -X POST 'http://localhost:8080/api/auth/login' \
   "password": "qwerty"
 }'
 ```
+```bash
+grpcurl -plaintext \
+-d '{
+  "username": "Alice",
+  "password": "qwerty"
+}' \
+localhost:50051 calendar.CalendarService/Login
+```
 
 #### Получения информации о пользователе
 ```bash
 curl -i -X GET 'http://localhost:8080/api/auth/me' \
 -H "Authorization: Bearer <token>"
 ```
+```bash
+grpcurl -plaintext \
+  -H "Authorization: Bearer <token>" \
+  -d '{}' \
+  localhost:50051 calendar.CalendarService/GetUser
+```
 
 #### Удаление пользователя
 ```bash
 curl -i -X DELETE 'http://localhost:8080/api/auth/me' \
 -H "Authorization: Bearer <token>"
+```
+```bash
+grpcurl -plaintext \
+  -H "Authorization: Bearer <token>" \
+  -d '{}' \
+  localhost:50051 calendar.CalendarService/DeleteUser
 ```
 
 #### Добавление события

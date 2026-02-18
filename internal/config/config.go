@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func Parse(configPath string, conf interface{}) error {
+func Parse(configPath string, conf any) error {
 	configYml, err := os.ReadFile(configPath)
 	if err != nil {
 		return fmt.Errorf("reading error: %w", err)

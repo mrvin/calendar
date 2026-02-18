@@ -1,7 +1,7 @@
 # GRPC server settings
 grpc:
     host: backend
-    port: 55555
+    port: 50051
 
 # HTTP server setting
 http:
@@ -26,12 +26,6 @@ db:
 logger:
     filepath:
     level: debug # debug, info, warn, error
-
-# tracing settings
-tracer:
-    enable: true
-    host: otel_collector
-    port: 4317
 
 # metric settings
 metrics:

@@ -72,13 +72,13 @@ func (s *Storage) UpdateEvent(_ context.Context, username string, id uuid.UUID, 
 	return nil
 }
 
-func (s *Storage) ListEvents(ctx context.Context, username string, startWindow, endWindow time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEvents(_ context.Context, username string, start, end time.Time) ([]storage.Event, error) {
 	events := make([]storage.Event, 0)
 
 	s.muEvents.RLock()
 	for _, event := range s.mEvents {
 		if event.Username == username {
-			if event.StartTime.Before(endWindow) && event.EndTime.After(startWindow) {
+			if event.StartTime.Before(end) && event.EndTime.After(start) {
 				events = append(events, event)
 			}
 		}

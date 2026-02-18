@@ -129,13 +129,13 @@ func (s *Storage) DeleteEvent(ctx context.Context, username string, id uuid.UUID
 	return nil
 }
 
-func (s *Storage) ListEvents(ctx context.Context, username string, startWindow, endWindow time.Time) ([]storage.Event, error) {
+func (s *Storage) ListEvents(ctx context.Context, username string, start, end time.Time) ([]storage.Event, error) {
 	sqlListEvents := `
 		SELECT id, title, description, start_time, end_time, notify_before, username
 		FROM events
 		WHERE username = $1 AND start_time < $3 AND end_time > $2
 		ORDER BY start_time DESC`
-	rows, err := s.db.Query(ctx, sqlListEvents, username, startWindow, endWindow)
+	rows, err := s.db.Query(ctx, sqlListEvents, username, start, end)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return []storage.Event{}, nil

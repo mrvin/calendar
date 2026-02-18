@@ -48,12 +48,12 @@ func NewListEvents(lister EventsLister) HandlerFunc {
 		if countParams != 1 {
 			return ctx, http.StatusBadRequest, errors.New("exactly one of date, week_start, month must be provided")
 		}
+		//TODO: validet
 		var startWindow, endWindow time.Time
 		switch {
 		case dateStr != "":
 			startWindow, err = time.Parse(time.DateOnly, dateStr)
 			if err != nil {
-				fmt.Println(dateStr)
 				return ctx, http.StatusBadRequest, errors.New("invalid date format, use YYYY-MM-DD")
 			}
 			endWindow = startWindow.AddDate(0, 0, 1)

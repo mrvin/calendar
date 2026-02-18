@@ -1,5 +1,4 @@
-//go:generate protoc -I=../../api/ --go_out=../../internal/grpcapi --go-grpc_out=require_unimplemented_servers=false:../../internal/grpcapi ../../api/event_service.proto
-//go:generate protoc -I=../../api/ --go_out=../../internal/grpcapi --go-grpc_out=require_unimplemented_servers=false:../../internal/grpcapi ../../api/user_service.proto
+//go:generate protoc -I=../../api/ --go_out=../../pkg/api --go-grpc_out=require_unimplemented_servers=false:../../pkg/api ../../api/calendar_service.proto
 package main
 
 import (
@@ -10,7 +9,8 @@ import (
 	"sync"
 	"time"
 
-	authservice "github.com/mrvin/calendar/internal/calendar/auth"
+	"github.com/mrvin/calendar/internal/calendar/auth"
+	"github.com/mrvin/calendar/internal/calendar/grpcserver"
 	"github.com/mrvin/calendar/internal/calendar/httpserver"
 	"github.com/mrvin/calendar/internal/config"
 	"github.com/mrvin/calendar/internal/logger"
@@ -24,16 +24,15 @@ const serviceName = "Calendar"
 const ctxTimeout = 2 // in second
 
 type Config struct {
-	InMem bool            `yaml:"inmemory"`
-	DB    postgresql.Conf `yaml:"db"`
-	HTTP  httpserver.Conf `yaml:"http"`
-	//	GRPC   grpcserver.Conf  `yaml:"grpc"`
-	Logger logger.Conf      `yaml:"logger"`
-	Metric metric.Conf      `yaml:"metrics"`
-	Auth   authservice.Conf `yaml:"auth"`
+	InMem  bool            `yaml:"inmemory"`
+	DB     postgresql.Conf `yaml:"db"`
+	HTTP   httpserver.Conf `yaml:"http"`
+	GRPC   grpcserver.Conf `yaml:"grpc"`
+	Logger logger.Conf     `yaml:"logger"`
+	Metric metric.Conf     `yaml:"metrics"`
+	Auth   auth.Conf       `yaml:"auth"`
 }
 
-//nolint:gocognit,cyclop
 func main() {
 	ctx := context.Background()
 
@@ -75,7 +74,6 @@ func main() {
 	}
 
 	var storage storage.Storage
-	//nolint:nestif
 	if conf.InMem {
 		slog.Info("Storage in memory")
 		storage = memory.New()
@@ -96,25 +94,20 @@ func main() {
 		slog.Info("Connected to database")
 	}
 
-	authService := authservice.New(storage, &conf.Auth)
-	serverHTTP := httpserver.New(&conf.HTTP, storage, authService)
-	//	serverGRPC, err := grpcserver.New(&conf.GRPC, authService, eventService)
-	//	if err != nil {
-	//		slog.Error("Failed to init gRPC server: " + err.Error())
-	//		return
-	//	}
+	auth := auth.New(storage, &conf.Auth)
+	serverHTTP := httpserver.New(&conf.HTTP, storage, auth)
+	serverGRPC, err := grpcserver.New(ctx, &conf.GRPC, auth, storage)
+	if err != nil {
+		slog.Error("Failed to init gRPC server: " + err.Error())
+		return
+	}
 
 	var wg sync.WaitGroup
 	wg.Go(func() {
 		serverHTTP.Run(ctx)
 	})
 	wg.Go(func() {
-		/*
-			if err := serverGRPC.Start(); err != nil {
-				slog.Error("Failed to start gRPC server: " + err.Error())
-				return
-			}
-		*/
+		serverGRPC.Run(ctx)
 	})
 	wg.Wait()
 

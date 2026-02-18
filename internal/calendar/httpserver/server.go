@@ -117,5 +117,4 @@ func (s *Server) Run(ctx context.Context) {
 	} else {
 		slog.Info("Stop http server")
 	}
-
 }

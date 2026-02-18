@@ -68,6 +68,7 @@ func NewCreateEvent(creator EventCreator) HandlerFunc {
 			return ctx, http.StatusBadRequest, errors.New("start_time must be before or equal to end_time")
 		}
 
+		//nolint:exhaustruct
 		event := storage.Event{
 			Title:        request.Title,
 			Description:  request.Description,

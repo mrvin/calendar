@@ -4,27 +4,32 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/mrvin/calendar/internal/logger"
 )
 
-type loggingResponseWriter struct {
+type LoggingResponseWriter struct {
 	http.ResponseWriter
+
 	statusCode    int
 	totalWritByte int
 }
 
-func NewLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
-	return &loggingResponseWriter{w, http.StatusOK, 0}
+func NewLoggingResponseWriter(w http.ResponseWriter) *LoggingResponseWriter {
+	return &LoggingResponseWriter{w, http.StatusOK, 0}
 }
 
-func (lrw *loggingResponseWriter) WriteHeader(code int) {
+func (lrw *LoggingResponseWriter) WriteHeader(code int) {
 	lrw.statusCode = code
 	lrw.ResponseWriter.WriteHeader(code)
 }
 
-func (lrw *loggingResponseWriter) Write(slByte []byte) (writeByte int, err error) {
-	writeByte, err = lrw.ResponseWriter.Write(slByte)
+func (lrw *LoggingResponseWriter) Write(slByte []byte) (int, error) {
+	writeByte, err := lrw.ResponseWriter.Write(slByte)
 	lrw.totalWritByte += writeByte
-	return
+
+	return writeByte, err //nolint:wrapcheck
 }
 
 type Logger struct {
@@ -32,12 +37,14 @@ type Logger struct {
 }
 
 func (l *Logger) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	requestID := uuid.New().String()
+	ctx := logger.WithRequestID(req.Context(), requestID)
+
 	logReq := slog.With(
+		slog.String("requestID", requestID),
 		slog.String("method", req.Method),
 		slog.String("path", req.URL.Path),
 		slog.String("addr", req.RemoteAddr),
-		//slog.String("user_agent", req.UserAgent()),
-		//slog.String("request_id", middleware.GetReqID(r.Context())),
 	)
 	timeStart := time.Now()
 	lrw := NewLoggingResponseWriter(res)
@@ -49,5 +56,5 @@ func (l *Logger) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		)
 	}()
 
-	l.Inner.ServeHTTP(lrw, req)
+	l.Inner.ServeHTTP(lrw, req.WithContext(ctx))
 }

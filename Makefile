@@ -8,8 +8,6 @@ test:
 	cd cmd/calendar && make test
 lint:
 	golangci-lint run ./internal/...
-codegen:
-	go generate ./...
 certgen:
 	openssl req -nodes -x509 -newkey rsa:4096 \
 		-keyout cert/serverKey.pem -out cert/serverCert.pem -days 365 \
@@ -24,5 +22,5 @@ run:
 down:
 	docker compose -f deployments/docker-compose.yaml --env-file deployments/postgres.env --profile prod down
 
-.PHONY: test build build-backend build-frontend up down lint codegen certgen
+.PHONY: build test certgen run down
 

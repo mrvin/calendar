@@ -6,7 +6,7 @@ services:
          dockerfile: cmd/calendar/Dockerfile
         ports:
          - "8080:8080" # REST API
-         - "55555:55555" # gRPC API
+         - "50051:50051" # gRPC API
         environment:
          ENV: PROD
         depends_on:
@@ -76,17 +76,8 @@ services:
          - "4317:4317" # OTLP over gRPC receiver
          - "9464:9464" # Prometheus exporter
         # healthcheck:
-        depends_on:
-         - jaeger
         volumes:
          - ./../configs/otel-collector.yml:/etc/otel-collector.yml
-
-    jaeger:
-        image: jaegertracing/all-in-one:1.63.0
-        ports:
-         - "16686:16686" # for serve Jaeger GUI
-         - "14268:14268"
-        # healthcheck:
 
     prometheus:
         image: prom/prometheus:v2.55.1

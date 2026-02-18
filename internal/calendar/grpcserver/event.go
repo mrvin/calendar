@@ -2,142 +2,160 @@ package grpcserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/mrvin/calendar/internal/calendar/auth"
-	"github.com/mrvin/calendar/internal/grpcapi"
 	"github.com/mrvin/calendar/internal/storage"
+	"github.com/mrvin/calendar/pkg/api"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (s *Server) CreateEvent(ctx context.Context, pbEvent *grpcapi.CreateEventRequest) (*grpcapi.CreateEventResponse, error) {
-	if err := pbEvent.GetStartTime().CheckValid(); err != nil {
-		err = fmt.Errorf("incorrect value StartTime: %w", err)
-		slog.Error(err.Error())
-		return nil, err
-	}
-	if err := pbEvent.GetStopTime().CheckValid(); err != nil {
-		err = fmt.Errorf("incorrect value StopTime: %w", err)
-		slog.Error(err.Error())
-		return nil, err
-	}
-
+func (s *Server) CreateEvent(ctx context.Context, req *api.ReqCreateEvent) (*api.ResCreateEvent, error) {
+	//TODO:add validation
 	username, err := auth.GetUsernameFromCtx(ctx)
 	if err != nil {
-		panic(err)
+		return nil, status.Errorf(codes.Internal, "getting username from ctx: %v", err)
 	}
-	user, err := s.authService.GetUser(ctx, username)
-	if err != nil {
-		err = fmt.Errorf("get user: %w", err)
-		slog.Error(err.Error())
-		return nil, err
-	}
+	notifyBefore := req.GetNotifyBefore().AsDuration()
+	//nolint:exhaustruct
 	event := storage.Event{
-		ID:          0,
-		Title:       pbEvent.GetTitle(),
-		Description: pbEvent.GetDescription(),
-		StartTime:   pbEvent.GetStartTime().AsTime(),
-		StopTime:    pbEvent.GetStopTime().AsTime(),
-		UserName:    user.Name,
+		Title:        req.GetTitle(),
+		Description:  req.GetDescription(),
+		StartTime:    req.GetStartTime().AsTime(),
+		EndTime:      req.GetEndTime().AsTime(),
+		NotifyBefore: &notifyBefore,
+		Username:     username,
 	}
 
-	id, err := s.eventService.CreateEvent(ctx, &event)
+	id, err := s.storage.CreateEvent(ctx, &event)
 	if err != nil {
-		err = fmt.Errorf("create event: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		err = fmt.Errorf("saving event to storage: %w", err)
+		if errors.Is(err, storage.ErrDateBusy) {
+			return nil, status.Error(codes.Aborted, err.Error()) //nolint:wrapcheck
+		}
+		return nil, status.Error(codes.Internal, err.Error()) //nolint:wrapcheck
 	}
 
-	return &grpcapi.CreateEventResponse{Id: id}, nil
+	return &api.ResCreateEvent{Id: id.String()}, nil
 }
 
-func (s *Server) GetEvent(ctx context.Context, req *grpcapi.GetEventRequest) (*grpcapi.EventResponse, error) {
-	event, err := s.eventService.GetEvent(ctx, req.GetId())
+func (s *Server) GetEvent(ctx context.Context, req *api.ReqGetEvent) (*api.ResEvent, error) {
+	username, err := auth.GetUsernameFromCtx(ctx)
 	if err != nil {
-		err := fmt.Errorf("get event: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "getting username from ctx: %v", err)
 	}
 
-	return &grpcapi.EventResponse{
-		Id:          event.ID,
-		Title:       event.Title,
-		Description: event.Description,
-		StartTime:   timestamppb.New(event.StartTime),
-		StopTime:    timestamppb.New(event.StopTime),
-		UserName:    event.UserName,
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "parse uuid: %v", err)
+	}
+
+	event, err := s.storage.GetEvent(ctx, username, id)
+	if err != nil {
+		err := fmt.Errorf("getting event from storage: %w", err)
+		if errors.Is(err, storage.ErrEventNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error()) //nolint:wrapcheck
+		}
+		return nil, status.Error(codes.Internal, err.Error()) //nolint:wrapcheck
+	}
+
+	return &api.ResEvent{
+		Id:           event.ID.String(),
+		Title:        event.Title,
+		Description:  event.Description,
+		StartTime:    timestamppb.New(event.StartTime),
+		EndTime:      timestamppb.New(event.EndTime),
+		NotifyBefore: durationpb.New(*event.NotifyBefore),
 	}, nil
 }
 
-func (s *Server) ListEventsForUser(ctx context.Context, req *grpcapi.ListEventsForUserRequest) (*grpcapi.ListEventsResponse, error) {
-	if err := req.GetDate().CheckValid(); err != nil {
-		return nil, fmt.Errorf("incorrect value date: %w", err)
-	}
-	date := req.GetDate().AsTime()
+func (s *Server) ListEvents(ctx context.Context, req *api.ReqListEvents) (*api.ResListEvents, error) {
+	//TODO: validet CheckValid
 
 	username, err := auth.GetUsernameFromCtx(ctx)
 	if err != nil {
-		panic(err)
+		return nil, status.Errorf(codes.Internal, "getting username from ctx: %v", err)
 	}
 
-	events, err := s.eventService.ListEventsForUser(ctx, username, date, int(req.GetDays()))
+	events, err := s.storage.ListEvents(ctx, username, req.GetStartTime().AsTime(), req.GetEndTime().AsTime())
 	if err != nil {
-		err := fmt.Errorf("get events for user: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "getting list events from storage: %v", err)
 	}
 
-	pbEvents := make([]*grpcapi.EventResponse, len(events), len(events))
+	pbEvents := make([]*api.ResEvent, len(events))
 	for i, event := range events {
-		pbEvents[i] = &grpcapi.EventResponse{
-			Id:          event.ID,
-			Title:       event.Title,
-			Description: event.Description,
-			StartTime:   timestamppb.New(event.StartTime),
-			StopTime:    timestamppb.New(event.StopTime),
-			UserName:    event.UserName,
+		pbEvents[i] = &api.ResEvent{
+			Id:           event.ID.String(),
+			Title:        event.Title,
+			Description:  event.Description,
+			StartTime:    timestamppb.New(event.StartTime),
+			EndTime:      timestamppb.New(event.EndTime),
+			NotifyBefore: durationpb.New(*event.NotifyBefore),
 		}
 	}
 
-	return &grpcapi.ListEventsResponse{Events: pbEvents}, nil
+	return &api.ResListEvents{Events: pbEvents}, nil
 }
 
-func (s *Server) UpdateEvent(ctx context.Context, pbEvent *grpcapi.UpdateEventRequest) (*emptypb.Empty, error) {
-	if err := pbEvent.GetStartTime().CheckValid(); err != nil {
-		err = fmt.Errorf("incorrect value StartTime: %w", err)
-		slog.Error(err.Error())
-		return nil, err
-	}
-	if err := pbEvent.GetStopTime().CheckValid(); err != nil {
-		err = fmt.Errorf("incorrect value StopTime: %w", err)
-		slog.Error(err.Error())
-		return nil, err
-	}
-	event := storage.Event{
-		ID:          0,
-		Title:       pbEvent.GetTitle(),
-		Description: pbEvent.GetDescription(),
-		StartTime:   pbEvent.GetStartTime().AsTime(),
-		StopTime:    pbEvent.GetStopTime().AsTime(),
-		UserName:    pbEvent.GetUserName(),
+func (s *Server) UpdateEvent(ctx context.Context, req *api.ReqUpdateEvent) (*emptypb.Empty, error) {
+	//TODO: validet CheckValid
+	username, err := auth.GetUsernameFromCtx(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "getting username from ctx: %v", err)
 	}
 
-	if err := s.eventService.UpdateEvent(ctx, &event); err != nil {
-		err := fmt.Errorf("update event: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "parse uuid: %v", err)
+	}
+
+	notifyBefore := req.GetNotifyBefore().AsDuration()
+	//nolint:exhaustruct
+	event := storage.Event{
+		Title:        req.GetTitle(),
+		Description:  req.GetDescription(),
+		StartTime:    req.GetStartTime().AsTime(),
+		EndTime:      req.GetEndTime().AsTime(),
+		NotifyBefore: &notifyBefore,
+	}
+
+	if err := s.storage.UpdateEvent(ctx, username, id, &event); err != nil {
+		err = fmt.Errorf("updating event to storage: %w", err)
+		if errors.Is(err, storage.ErrDateBusy) {
+			return nil, status.Error(codes.Aborted, err.Error()) //nolint:wrapcheck
+		}
+		if errors.Is(err, storage.ErrEventNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error()) //nolint:wrapcheck
+		}
+		return nil, status.Error(codes.Internal, err.Error()) //nolint:wrapcheck
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
-func (s *Server) DeleteEvent(ctx context.Context, req *grpcapi.DeleteEventRequest) (*emptypb.Empty, error) {
-	if err := s.eventService.DeleteEvent(ctx, req.GetId()); err != nil {
-		err := fmt.Errorf("delete event: %w", err)
-		slog.Error(err.Error())
-		return nil, err
+func (s *Server) DeleteEvent(ctx context.Context, req *api.ReqDeleteEvent) (*emptypb.Empty, error) {
+	username, err := auth.GetUsernameFromCtx(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "getting username from ctx: %v", err)
+	}
+
+	id, err := uuid.Parse(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "parse uuid: %v", err)
+	}
+
+	if err := s.storage.DeleteEvent(ctx, username, id); err != nil {
+		err := fmt.Errorf("deleting event from storage: %w", err)
+		if errors.Is(err, storage.ErrEventNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error()) //nolint:wrapcheck
+		}
+		return nil, status.Error(codes.Internal, err.Error()) //nolint:wrapcheck
 	}
 
 	return &emptypb.Empty{}, nil

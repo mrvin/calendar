@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,7 +21,7 @@ const (
 
 type Conf struct {
 	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
+	Port     string `yaml:"port"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	Name     string `yaml:"name"`
@@ -44,13 +45,16 @@ func New(ctx context.Context, conf *Conf) (*Storage, error) {
 	return &st, nil
 }
 
+func (s *Storage) Close() {
+	s.db.Close()
+}
+
 func (s *Storage) connect(ctx context.Context) error {
 	dbConfStr := fmt.Sprintf(
-		"postgresql://%s:%s@%s:%d/%s?sslmode=disable",
+		"postgresql://%s:%s@%s/%s?sslmode=disable",
 		s.conf.User,
 		s.conf.Password,
-		s.conf.Host,
-		s.conf.Port,
+		net.JoinHostPort(s.conf.Host, s.conf.Port),
 		s.conf.Name,
 	)
 	config, err := pgxpool.ParseConfig(dbConfStr)
@@ -73,8 +77,4 @@ func (s *Storage) connect(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (s *Storage) Close() {
-	s.db.Close() //nolint:wrapcheck
 }
