@@ -14,7 +14,7 @@ import (
 )
 
 type EventsLister interface {
-	ListEvents(ctx context.Context, username string, startWindow, endWindow time.Time) ([]storage.Event, error)
+	ListEvents(ctx context.Context, username string, start, end time.Time) ([]storage.Event, error)
 }
 
 type ResponseListEvents struct {
@@ -32,47 +32,22 @@ func NewListEvents(lister EventsLister) HandlerFunc {
 		}
 		ctx = logger.WithUsername(ctx, username)
 
-		dateStr := req.URL.Query().Get("date")            // date - дата в формате YYYY-MM-DD.
-		weekStartStr := req.URL.Query().Get("week_start") // week_start - дата начала недели в формате YYYY-MM-DD.
-		monthStr := req.URL.Query().Get("month")          // month - месяц в формате YYYY-MM.
-		countParams := uint8(0)
-		if dateStr != "" {
-			countParams++
-		}
-		if weekStartStr != "" {
-			countParams++
-		}
-		if monthStr != "" {
-			countParams++
-		}
-		if countParams != 1 {
-			return ctx, http.StatusBadRequest, errors.New("exactly one of date, week_start, month must be provided")
-		}
-		//TODO: validet
-		var startWindow, endWindow time.Time
-		switch {
-		case dateStr != "":
-			startWindow, err = time.Parse(time.DateOnly, dateStr)
-			if err != nil {
-				return ctx, http.StatusBadRequest, errors.New("invalid date format, use YYYY-MM-DD")
-			}
-			endWindow = startWindow.AddDate(0, 0, 1)
-		case weekStartStr != "":
-			startWindow, err = time.Parse(time.DateOnly, weekStartStr)
-			if err != nil {
-				return ctx, http.StatusBadRequest, errors.New("invalid week_start format, use YYYY-MM-DD")
-			}
-			endWindow = startWindow.AddDate(0, 0, 7)
+		startStr := req.URL.Query().Get("start_time")
+		endStr := req.URL.Query().Get("end_time")
 
-		case monthStr != "":
-			startWindow, err = time.Parse("2025-12", monthStr)
-			if err != nil {
-				return ctx, http.StatusBadRequest, errors.New("invalid month format, use YYYY-MM")
-			}
-			endWindow = startWindow.AddDate(0, 1, 0)
+		start, err := time.Parse(time.RFC3339, startStr)
+		if err != nil {
+			return ctx, http.StatusBadRequest, errors.New("invalid start_time format, use RFC3339")
+		}
+		end, err := time.Parse(time.RFC3339, endStr)
+		if err != nil {
+			return ctx, http.StatusBadRequest, errors.New("invalid end_time format, use RFC3339")
+		}
+		if start.After(end) {
+			return ctx, http.StatusBadRequest, errors.New("start_time must be before or equal to end_time")
 		}
 
-		events, err := lister.ListEvents(ctx, username, startWindow, endWindow)
+		events, err := lister.ListEvents(ctx, username, start, end)
 		if err != nil {
 			return ctx, http.StatusInternalServerError, fmt.Errorf("getting list events from storage: %w", err)
 		}

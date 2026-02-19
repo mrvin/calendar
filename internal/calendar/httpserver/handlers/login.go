@@ -44,6 +44,7 @@ func NewLogin(auth UserLoginer) HandlerFunc {
 
 		token, err := auth.Login(ctx, request.Username, request.Password)
 		if err != nil {
+			err = fmt.Errorf("logining: %w", err)
 			if errors.Is(err, authentication.ErrInvalidCredentials) {
 				return ctx, http.StatusUnauthorized, err
 			}

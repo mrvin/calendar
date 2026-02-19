@@ -27,7 +27,7 @@ func NewDeleteUser(deleter UserDeleter) HandlerFunc {
 		ctx = logger.WithUsername(ctx, username)
 
 		if err := deleter.DeleteUser(ctx, username); err != nil {
-			err := fmt.Errorf("deleting user from storage: %w", err)
+			err = fmt.Errorf("deleting user from storage: %w", err)
 			if errors.Is(err, storage.ErrUserNotFound) {
 				return ctx, http.StatusNotFound, err
 			}

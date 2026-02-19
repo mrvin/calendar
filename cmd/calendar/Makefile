@@ -9,7 +9,7 @@ build:
 	go build -ldflags "$(LDFLAGS)" -o ../../bin/calendar
 test:
 	mkdir -p ../../reports
-	go test -race ../../internal/storage/memory -coverprofile=../../reports/memory_coverage.out
+	CGO_ENABLED=1 go test -race ../../internal/storage/memory -coverprofile=../../reports/memory_coverage.out
 	go test ../../internal/calendar/httpserver/handlers -coverprofile=../../reports/handlers_coverage.out
 report:
 	go tool cover -html=../../reports/memory_coverage.out -o ../../reports/memory_cover.html

@@ -34,7 +34,7 @@ func NewDeleteEvent(deleter EventDeleter) HandlerFunc {
 		ctx = logger.WithUsername(ctx, username)
 
 		if err := deleter.DeleteEvent(ctx, username, id); err != nil {
-			err := fmt.Errorf("deleting event from storage: %w", err)
+			err = fmt.Errorf("deleting event from storage: %w", err)
 			if errors.Is(err, storage.ErrEventNotFound) {
 				return ctx, http.StatusNotFound, err
 			}

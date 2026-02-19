@@ -2,10 +2,8 @@ build:
 	$(MAKE) -C cmd/calendar build
 	$(MAKE) -C cmd/scheduler build
 	$(MAKE) -C cmd/sender build
-
 test:
-	go test -race ./internal/storage/... -cover
-	cd cmd/calendar && make test
+	$(MAKE) -C cmd/calendar test
 lint:
 	golangci-lint run ./internal/...
 certgen:

@@ -33,7 +33,7 @@ func NewGetUser(getter UserGetter) HandlerFunc {
 
 		user, err := getter.GetUser(ctx, username)
 		if err != nil {
-			err := fmt.Errorf("getting user from storage: %w", err)
+			err = fmt.Errorf("getting user from storage: %w", err)
 			if errors.Is(err, storage.ErrUserNotFound) {
 				return ctx, http.StatusNotFound, err
 			}

@@ -12,8 +12,8 @@ var (
 	ErrUserExists   = errors.New("user already exists")
 	ErrUserNotFound = errors.New("user not found")
 
-	ErrEventNotFound = errors.New("event not found")
 	ErrDateBusy      = errors.New("date already busy")
+	ErrEventNotFound = errors.New("event not found")
 )
 
 type UserStorage interface {
@@ -25,7 +25,7 @@ type UserStorage interface {
 type EventStorage interface {
 	CreateEvent(ctx context.Context, event *Event) (uuid.UUID, error)
 	GetEvent(ctx context.Context, username string, id uuid.UUID) (*Event, error)
-	ListEvents(ctx context.Context, username string, startWindow, endWindow time.Time) ([]Event, error)
+	ListEvents(ctx context.Context, username string, start, end time.Time) ([]Event, error)
 	UpdateEvent(ctx context.Context, username string, id uuid.UUID, event *Event) error
 	DeleteEvent(ctx context.Context, username string, id uuid.UUID) error
 }
@@ -45,14 +45,15 @@ type User struct {
 	//	CreatedAt   time.Time
 }
 
+//nolint:tagliatelle
 type Event struct {
-	ID           uuid.UUID
-	Title        string
-	Description  string
-	StartTime    time.Time
-	EndTime      time.Time
-	NotifyBefore *time.Duration
-	Username     string
+	ID           uuid.UUID      `json:"id"`
+	Title        string         `json:"title"`
+	Description  string         `json:"description"`
+	StartTime    time.Time      `json:"start_time"`
+	EndTime      time.Time      `json:"end_time"`
+	NotifyBefore *time.Duration `json:"notify_before"`
+	Username     string         `json:"-"`
 
 	//	UpdatedAt   time.Time
 	//	CreatedAt   time.Time

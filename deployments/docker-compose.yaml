@@ -1,17 +1,44 @@
 name: calendar
 services:
-    backend:
+    api-prod:
+        profiles: ['prod']
+#        image: ghcr.io/mrvin/calendar:v1.0.0
         build:
          context: ../
          dockerfile: cmd/calendar/Dockerfile
+         target: prod
         ports:
-         - "8080:8080" # REST API
+         - "8080:8080"   # REST API
+         - "50051:50051" # gRPC API
+        depends_on:
+          migrate:
+            condition: service_completed_successfully
+        healthcheck:
+          test: ["CMD", "/bin/httpscheck", "http://api-prod:8080/api/health"]
+          interval: 1s
+        volumes:
+         - ${HOME}/volumes_docker/calendar/log:/var/log/calendar/
+         - ./../configs/calendar.yml:/etc/calendar/calendar.yml
+
+    api-dev:
+        profiles: ['dev']
+        build:
+         context: ../
+         dockerfile: cmd/calendar/Dockerfile
+         target: dev
+        ports:
+         - "8080:8080"   # REST API
          - "50051:50051" # gRPC API
         environment:
-         ENV: PROD
+         ENV: HELLO
         depends_on:
-         - migrate
+          migrate:
+            condition: service_completed_successfully
+        healthcheck:
+          test: ["CMD", "/bin/httpscheck", "http://api-dev:8080/api/health"]
+          interval: 1s
         volumes:
+         - ${HOME}/volumes_docker/calendar/log:/var/log/calendar/
          - ./../configs/calendar.yml:/etc/calendar/calendar.yml
 
     scheduler:
@@ -37,7 +64,7 @@ services:
         - ./../configs/sender.yml:/etc/calendar/sender.yml
 
     migrate:
-        image: migrate/migrate:v4.18.1
+        image: migrate/migrate:v4.19.1
         command: ["-path", "/migrations", "-database",  "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable", "up"]
         depends_on:
           postgres:
@@ -47,17 +74,16 @@ services:
 
     # Create service with PostgreSQL.
     postgres:
-        image: postgres:17.0-alpine3.20
+        image: postgres:18.1-alpine3.23
         ports:
          - "5432"
-        user: root
         env_file:
          - postgres.env
         healthcheck:
           test: ["CMD", "pg_isready", "-q", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
-          interval: 3s
+          interval: 1s
         volumes:
-         - ${HOME}/volumes_docker/calendar/postgres-data:/var/lib/postgresql/data
+         - ${HOME}/volumes_docker/calendar/postgres-data:/var/lib/postgresql
 
     # Create service with RabbitMQ.
     rabbitmq:

@@ -47,7 +47,7 @@ func NewGetEvent(getter EventGetter) HandlerFunc {
 
 		event, err := getter.GetEvent(ctx, username, id)
 		if err != nil {
-			err := fmt.Errorf("getting event from storage: %w", err)
+			err = fmt.Errorf("getting event from storage: %w", err)
 			if errors.Is(err, storage.ErrEventNotFound) {
 				return ctx, http.StatusNotFound, err
 			}

@@ -1,11 +1,11 @@
 # GRPC server settings
 grpc:
-    host: backend
+    host: 0.0.0.0
     port: 50051
 
 # HTTP server setting
 http:
-    host: backend
+    host: 0.0.0.0
     port: 8080
     is_https: false # Enable HTTPS
     https:
@@ -24,7 +24,7 @@ db:
 
 # logging settings
 logger:
-    filepath:
+    filepath: /var/log/calendar/log.json
     level: debug # debug, info, warn, error
 
 # metric settings
