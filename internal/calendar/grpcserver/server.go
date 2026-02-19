@@ -31,15 +31,15 @@ type Server struct {
 	serv    *grpc.Server
 	conn    net.Listener
 	addr    string
-	auth    *auth.Auth
 	storage storage.Storage
+	auth    *auth.Auth
 }
 
-func New(ctx context.Context, conf *Conf, auth *auth.Auth, storage storage.Storage) (*Server, error) {
+func New(ctx context.Context, conf *Conf, storage storage.Storage, auth *auth.Auth) (*Server, error) {
 	var server Server
 
-	server.auth = auth
 	server.storage = storage
+	server.auth = auth
 
 	var err error
 	lc := net.ListenConfig{} //nolint:exhaustruct

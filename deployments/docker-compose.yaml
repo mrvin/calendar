@@ -30,7 +30,7 @@ services:
          - "8080:8080"   # REST API
          - "50051:50051" # gRPC API
         environment:
-         ENV: HELLO
+         ENV: TEST
         depends_on:
           migrate:
             condition: service_completed_successfully

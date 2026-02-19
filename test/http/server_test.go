@@ -1,6 +1,6 @@
-/*
 package handler_test
 
+/*
 import (
 	"bytes"
 	"context"

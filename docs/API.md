@@ -102,7 +102,7 @@ localhost:50051 calendar.CalendarService/GetEvent
 
 #### Список cобытий (на день/на неделю/нa месяц)
 ```bash
-curl -i -X GET 'http://localhost:8080/api/events?date=2022-05-25' \
+curl -i -X GET 'http://localhost:8080/api/events?start_time=2022-05-25T00:00:00Z&end_time=2022-05-26T00:00:00Z' \
 -H "Authorization: Bearer <token>"
 ```
 ```bash

@@ -1,3 +1,5 @@
+check-format:
+	test -z $$(go fmt ./...)
 build:
 	$(MAKE) -C cmd/calendar build
 	$(MAKE) -C cmd/scheduler build

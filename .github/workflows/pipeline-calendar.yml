@@ -1,0 +1,142 @@
+---
+name: CI Calendar
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+    paths:
+      - 'cmd/calendar/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - '!internal/queue/**'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'cmd/calendar/**'
+      - 'internal/**'
+      - 'pkg/**'
+      - '!internal/queue/**'
+
+jobs:
+  lint-test-build:
+    name: Lint Test Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the go module directory
+        uses: actions/checkout@v4
+
+      - name: Set up go 1.26
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.0'
+
+      - name: Run format check
+        run: make check-format
+
+      - name: Install golangci-lint binary
+        run: |
+          curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.9.0
+      - name: Run golangci-lint via Makefile
+        run: cd cmd/calendar && make lint
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ${{ env.GOPATH }}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download go modules
+        run: go mod download
+
+      - name: Run Test
+        run: cd cmd/calendar && make test
+
+      # - name: Coverage Check
+      #   run: make coverage
+
+      - name: Generate Report
+        run: cd cmd/calendar && make report
+
+      - name: Archive reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage_reports
+          path: |
+            reports/memory_cover.html
+            reports/handlers_cover.html
+
+      - name: Build binary
+        run: cd cmd/calendar && make build
+
+      - name: Archive binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: calendar
+          path: bin/calendar
+
+  deliver:
+    name: Release
+    permissions: write-all
+    runs-on: ubuntu-latest
+    needs: lint-test-build
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    steps:
+      - name: Check out code into the go module directory
+        uses: actions/checkout@v4
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: calendar
+
+      - name: Changelog
+        id: changelog
+        uses: requarks/changelog-action@v1.10.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+          writeToFile: false
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2.5.0
+        with:
+          body: ${{ steps.changelog.outputs.changes }}
+          files: ./calendar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  containerize:
+    name: Build and Push Docker Image
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    needs: lint-test-build
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    steps:
+      - name: Check out code into the go module directory
+        uses: actions/checkout@v4
+
+      - name: Login to github container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Build and push docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: './cmd/calendar/Dockerfile'
+          push: true
+          tags: 'ghcr.io/${{ github.actor }}/calendar:${{ github.ref_name }}'

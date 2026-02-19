@@ -96,7 +96,7 @@ func main() {
 
 	auth := auth.New(storage, &conf.Auth)
 	serverHTTP := httpserver.New(&conf.HTTP, storage, auth)
-	serverGRPC, err := grpcserver.New(ctx, &conf.GRPC, auth, storage)
+	serverGRPC, err := grpcserver.New(ctx, &conf.GRPC, storage, auth)
 	if err != nil {
 		slog.Error("Failed to init gRPC server: " + err.Error())
 		return
