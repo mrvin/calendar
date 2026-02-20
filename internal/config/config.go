@@ -2,19 +2,20 @@ package config
 
 import (
 	"fmt"
-	"os"
 
-	"gopkg.in/yaml.v3"
+	"github.com/ilyakaznacheev/cleanenv"
 )
 
 func Parse(configPath string, conf any) error {
-	configYml, err := os.ReadFile(configPath)
-	if err != nil {
-		return fmt.Errorf("reading error: %w", err)
+	if configPath == "" {
+		if err := cleanenv.ReadEnv(conf); err != nil {
+			return fmt.Errorf("read env: %w", err)
+		}
+		return nil
 	}
 
-	if err := yaml.Unmarshal(configYml, conf); err != nil {
-		return fmt.Errorf("can't unmarshal %s: %w", configPath, err)
+	if err := cleanenv.ReadConfig(configPath, conf); err != nil {
+		return fmt.Errorf("read config %s: %w", configPath, err)
 	}
 
 	return nil

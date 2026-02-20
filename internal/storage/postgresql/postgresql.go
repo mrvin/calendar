@@ -20,11 +20,11 @@ const (
 )
 
 type Conf struct {
-	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Name     string `yaml:"name"`
+	Host     string `env:"POSTGRES_HOST"     yaml:"host"`
+	Port     string `env:"POSTGRES_PORT"     yaml:"port"`
+	User     string `env:"POSTGRES_USER"     yaml:"user"`
+	Password string `env:"POSTGRES_PASSWORD" yaml:"password"`
+	Name     string `env:"POSTGRES_DB"       yaml:"name"`
 }
 
 type Storage struct {

@@ -23,8 +23,8 @@ import (
 )
 
 type Conf struct {
-	Host string `yaml:"host"`
-	Port string `yaml:"port"`
+	Host string `env:"GRPC_HOST" yaml:"host"`
+	Port string `env:"GRPC_PORT" yaml:"port"`
 }
 
 type Server struct {

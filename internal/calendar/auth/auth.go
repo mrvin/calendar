@@ -18,8 +18,8 @@ var ErrInvalidCredentials = errors.New("invalid username or password")
 
 //nolint:tagliatelle
 type Conf struct {
-	SecretKey           string `yaml:"secret_key"`
-	TokenValidityPeriod int    `yaml:"token_validity_period"`
+	SecretKey           string `env:"SECRET_KEY"            yaml:"secret_key"`
+	TokenValidityPeriod int    `env:"TOKEN_VALIDITY_PERIOD" yaml:"token_validity_period"` // in minute
 }
 
 type Auth struct {

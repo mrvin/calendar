@@ -24,7 +24,7 @@ const serviceName = "Calendar"
 const ctxTimeout = 2 // in second
 
 type Config struct {
-	InMem  bool            `yaml:"inmemory"`
+	InMem  bool            `env:"INMEMORY" yaml:"inmemory"`
 	DB     postgresql.Conf `yaml:"db"`
 	HTTP   httpserver.Conf `yaml:"http"`
 	GRPC   grpcserver.Conf `yaml:"grpc"`

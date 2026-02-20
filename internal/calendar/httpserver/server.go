@@ -23,15 +23,15 @@ const idleTimeout = 1   // in minute
 
 //nolint:tagliatelle
 type ConfTLS struct {
-	CertFile string `yaml:"cert_file"`
-	KeyFile  string `yaml:"key_file"`
+	CertFile string `env:"TLS_CERT_FILE" yaml:"cert_file"`
+	KeyFile  string `env:"TLS_KEY_FILE"  yaml:"key_file"`
 }
 
 //nolint:tagliatelle
 type Conf struct {
-	Host  string  `yaml:"host"`
-	Port  string  `yaml:"port"`
-	IsTLS bool    `yaml:"is_https"`
+	Host  string  `env:"HTTP_HOST"  yaml:"host"`
+	Port  string  `env:"HTTP_PORT"  yaml:"port"`
+	IsTLS bool    `env:"TLS_ENABLE" yaml:"is_https"`
 	TLS   ConfTLS `yaml:"https"`
 }
 

@@ -13,9 +13,9 @@ import (
 )
 
 type Conf struct {
-	Enable bool   `yaml:"enable"`
-	Host   string `yaml:"host"`
-	Port   int    `yaml:"port"`
+	Enable bool   `env:"METRIC_ENABLE" yaml:"enable"`
+	Host   string `env:"METRIC_HOST"   yaml:"host"`
+	Port   int    `env:"METRIC_PORT"   yaml:"port"`
 }
 
 func Init(ctx context.Context, conf *Conf, serviceName string) (*sdkmetric.MeterProvider, error) {
