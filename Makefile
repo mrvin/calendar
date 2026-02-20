@@ -7,7 +7,7 @@ build:
 test:
 	$(MAKE) -C cmd/calendar test
 lint:
-	golangci-lint run ./internal/...
+	golangci-lint run ./...
 certgen:
 	openssl req -nodes -x509 -newkey rsa:4096 \
 		-keyout cert/serverKey.pem -out cert/serverCert.pem -days 365 \
@@ -18,9 +18,9 @@ certgen:
 
 run:
 	mkdir -p certs
-	docker compose -f deployments/docker-compose.yaml --env-file deployments/postgres.env --profile prod up --build
+	docker compose -f deployments/docker-compose.yaml --env-file configs/postgres.env --profile prod up --build
 down:
-	docker compose -f deployments/docker-compose.yaml --env-file deployments/postgres.env --profile prod down
+	docker compose -f deployments/docker-compose.yaml --env-file configs/postgres.env --profile prod down
 
-.PHONY: build test certgen run down
+.PHONY: check-format build test lint certgen run down
 

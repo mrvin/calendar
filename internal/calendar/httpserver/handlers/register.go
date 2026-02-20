@@ -21,7 +21,7 @@ type UserCreator interface {
 
 type RequestRegister struct {
 	Username string `json:"username" validate:"required,min=3,max=20"`
-	Password string `json:"password" validate:"required,min=6,max=32"`
+	Password string `json:"password" validate:"required,min=6,max=32"` //nolint:gosec
 	Email    string `json:"email"    validate:"required,email"`
 }
 

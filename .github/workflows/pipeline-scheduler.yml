@@ -1,5 +1,5 @@
 ---
-name: CI Calendar
+name: CI Scheduler
 
 on:
   push:
@@ -8,26 +8,23 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
     paths:
-      - 'cmd/calendar/**'
-      - 'internal/**'
-      - '!internal/queue/**'
-      - '!internal/scheduler/**'
-      - '!internal/sender/**'
-      - 'pkg/**'
-      - '!pkg/api'
-
+      - 'cmd/scheduler/**'
+      - 'internal/scheduler/**'
+      - 'internal/storage/**'
+      - 'internal/queue/**'
+      - 'internal/logger/**'
+      - 'internal/config/**'
 
   pull_request:
     branches:
       - main
     paths:
-      - 'cmd/calendar/**'
-      - 'internal/**'
-      - '!internal/queue/**'
-      - '!internal/scheduler/**'
-      - '!internal/sender/**'
-      - 'pkg/**'
-      - '!pkg/api'
+      - 'cmd/scheduler/**'
+      - 'internal/scheduler/**'
+      - 'internal/storage/**'
+      - 'internal/queue/**'
+      - 'internal/logger/**'
+      - 'internal/config/**'
 
 jobs:
   lint-test-build:
@@ -64,28 +61,14 @@ jobs:
       - name: Download go modules
         run: go mod download
 
-      - name: Run Test
-        run: cd cmd/calendar && make test
-
-      - name: Generate Report
-        run: cd cmd/calendar && make report
-
-      - name: Archive reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage_reports
-          path: |
-            reports/memory_cover.html
-            reports/handlers_cover.html
-
       - name: Build binary
-        run: cd cmd/calendar && make build
+        run: cd cmd/scheduler && make build
 
       - name: Archive binary
         uses: actions/upload-artifact@v4
         with:
-          name: calendar
-          path: bin/calendar
+          name: scheduler
+          path: bin/scheduler
 
   deliver:
     name: Release
@@ -100,7 +83,7 @@ jobs:
       - name: Download binary
         uses: actions/download-artifact@v4
         with:
-          name: calendar
+          name: scheduler
 
       - name: Changelog
         id: changelog
@@ -114,7 +97,7 @@ jobs:
         uses: softprops/action-gh-release@v2.5.0
         with:
           body: ${{ steps.changelog.outputs.changes }}
-          files: ./calendar
+          files: ./scheduler
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -141,6 +124,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: './cmd/calendar/Dockerfile'
+          file: './cmd/scheduler/Dockerfile'
           push: true
-          tags: 'ghcr.io/${{ github.actor }}/calendar:${{ github.ref_name }}'
+          tags: 'ghcr.io/${{ github.actor }}/scheduler:${{ github.ref_name }}'

@@ -150,3 +150,34 @@ func (s *Storage) ListEvents(ctx context.Context, username string, start, end ti
 
 	return events, nil
 }
+
+func (s *Storage) ListEventsToNotify(ctx context.Context, start, end time.Time) ([]storage.Event, error) {
+	sqlListEventsToNotify := `
+		SELECT
+			id,
+			title,
+			description,
+			start_time,
+			end_time,
+			notify_before,
+			username,
+			(start_time - (notify_before * INTERVAL '1 second')) AS notify_time
+		FROM events
+		WHERE notify_time >= $1
+		  AND notify_time <= $2
+		ORDER BY notify_time ASC`
+	rows, err := s.db.Query(ctx, sqlListEventsToNotify, start, end)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []storage.Event{}, nil
+		}
+		return nil, fmt.Errorf("list events to notify: %w", err)
+	}
+
+	events, err := pgx.CollectRows(rows, pgx.RowToStructByName[storage.Event])
+	if err != nil {
+		return nil, fmt.Errorf("list events to notify: %w", err)
+	}
+
+	return events, nil
+}

@@ -18,9 +18,9 @@ inmemory: false
 db:
     host: postgres
     port: 5432
-    user: event-db
-    password: event-db
-    name: event-db
+    user: calendar-user
+    password: calendar-user
+    name: calendar-db
 
 # logging settings
 logger:

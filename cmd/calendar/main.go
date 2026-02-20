@@ -34,29 +34,30 @@ type Config struct {
 }
 
 func main() {
-	ctx := context.Background()
-
 	configFile := flag.String("config", "/etc/calendar/calendar.yml", "path to configuration file")
 	flag.Parse()
 
+	// init config
 	var conf Config
 	if err := config.Parse(*configFile, &conf); err != nil {
 		log.Printf("Parse config: %v", err)
 		return
 	}
 
+	// init logger
 	logFile, err := logger.Init(&conf.Logger)
 	if err != nil {
-		log.Printf("Init logger: %v\n", err)
+		log.Printf("Init logger: %v", err)
 		return
 	}
-	slog.Info("Init logger", slog.String("Logging level", conf.Logger.Level))
+	slog.Info("Init logger", slog.String("level", conf.Logger.Level))
 	defer func() {
 		if err := logFile.Close(); err != nil {
-			slog.Error("Close log file: " + err.Error())
+			slog.Error("Close log file", slog.String("error", err.Error())) //nolint:gosec
 		}
 	}()
 
+	ctx := context.Background()
 	if conf.Metric.Enable {
 		ctxMetric, cancel := context.WithTimeout(ctx, ctxTimeout*time.Second)
 		defer cancel()
@@ -73,6 +74,7 @@ func main() {
 		}
 	}
 
+	// init storage
 	var storage storage.Storage
 	if conf.InMem {
 		slog.Info("Storage in memory")
@@ -102,6 +104,7 @@ func main() {
 		return
 	}
 
+	// Start servers
 	var wg sync.WaitGroup
 	wg.Go(func() {
 		serverHTTP.Run(ctx)

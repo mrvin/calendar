@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"time"
 
 	"github.com/mrvin/calendar/internal/queue"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -44,7 +45,10 @@ func (q *Queue) ConnectAndCreate(url, name string) error {
 }
 
 func (q *Queue) SendMsg(ctx context.Context, body []byte) error {
-	err := q.ch.PublishWithContext(ctx,
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	err := q.ch.PublishWithContext(
+		ctx,
 		"",           // exchange
 		q.queue.Name, // routing key
 		false,        // mandatory
@@ -84,7 +88,7 @@ func (q *Queue) Close() error {
 func QueryBuildAMQP(conf *queue.Conf) string {
 	query := url.URL{
 		Scheme: "amqp",
-		User:   url.UserPassword(conf.UserName, conf.Password),
+		User:   url.UserPassword(conf.User, conf.Password),
 		Host:   fmt.Sprintf("%s:%d", conf.Host, conf.Port),
 	}
 

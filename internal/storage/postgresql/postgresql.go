@@ -23,7 +23,7 @@ type Conf struct {
 	Host     string `env:"POSTGRES_HOST"     yaml:"host"`
 	Port     string `env:"POSTGRES_PORT"     yaml:"port"`
 	User     string `env:"POSTGRES_USER"     yaml:"user"`
-	Password string `env:"POSTGRES_PASSWORD" yaml:"password"`
+	Password string `env:"POSTGRES_PASSWORD" yaml:"password"` //nolint:gosec
 	Name     string `env:"POSTGRES_DB"       yaml:"name"`
 }
 

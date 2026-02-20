@@ -4,23 +4,25 @@ import (
 	"bytes"
 	"encoding/gob"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Conf struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
-	UserName string `yaml:"user_name"`
+	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	Name     string `yaml:"name"`
 }
 
 type AlertEvent struct {
-	EventID     int64
+	ID          uuid.UUID
 	Title       string
 	Description string
 	StartTime   time.Time
-	UserName    string
-	UserEmail   string
+	EndTime     time.Time
+	Username    string
 }
 
 func EncodeAlertEvent(event *AlertEvent) ([]byte, error) {

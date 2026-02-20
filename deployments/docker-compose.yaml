@@ -10,6 +10,8 @@ services:
         ports:
          - "8080:8080"   # REST API
          - "50051:50051" # gRPC API
+        env_file:
+         - ../configs/postgres.env
         depends_on:
           migrate:
             condition: service_completed_successfully
@@ -29,6 +31,8 @@ services:
         ports:
          - "8080:8080"   # REST API
          - "50051:50051" # gRPC API
+        env_file:
+         - ../configs/postgres.env
         environment:
          ENV: TEST
         depends_on:
@@ -45,6 +49,8 @@ services:
        build:
         context: ../
         dockerfile: cmd/scheduler/Dockerfile
+        env_file:
+         - ../configs/postgres.env
        depends_on:
          postgres:
            condition: service_healthy
@@ -65,7 +71,7 @@ services:
 
     migrate:
         image: migrate/migrate:v4.19.1
-        command: ["-path", "/migrations", "-database",  "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable", "up"]
+        command: ["-path", "/migrations", "-database",  "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable", "up"]
         depends_on:
           postgres:
             condition: service_healthy
@@ -78,7 +84,7 @@ services:
         ports:
          - "5432"
         env_file:
-         - postgres.env
+         - ../configs/postgres.env
         healthcheck:
           test: ["CMD", "pg_isready", "-q", "-d", "${POSTGRES_DB}", "-U", "${POSTGRES_USER}"]
           interval: 1s
